@@ -1,0 +1,8 @@
+{
+  "url": "your-broker-url-here.emqxsl.com",
+  "port": 8883,
+  "username": "your-mqtt-username",
+  "password": "your-mqtt-password",
+  "use_tls": true,
+  "ca_cert": "emqxsl-ca.crt"
+}

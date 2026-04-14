@@ -1,0 +1,59 @@
+# Environment files with credentials
+.env
+.env.local
+.env.*.local
+backend/.env
+MOBILE/.env
+
+# Configuration files with credentials
+backend/broker_config.json
+backend/gemini_config.json
+backend/config.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build artifacts
+node_modules/
+build/
+dist/
+.dart_tool/
+*.o
+*.a
+
+# Flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Certificates
+*.key
+*.pem
+*.crt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# Generated
+DIRECTORY_TREE.txt
+~$*.docx

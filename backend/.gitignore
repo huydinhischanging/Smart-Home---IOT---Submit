@@ -1,0 +1,44 @@
+# Environment secrets — NEVER commit
+.env
+.env.local
+.env.*.local
+
+# API keys and config files containing credentials
+gemini_config.json
+broker_config.json
+config.json
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Database
+*.db
+*.sqlite3
+
+# Certificates (may contain private keys)
+*.key
+*.pem
+*.crt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Build
+dist/
+build/
+*.egg-info/
