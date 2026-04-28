@@ -1,0 +1,103 @@
+\chapter{Background and Related Works}
+
+\section{Internet of Things in Healthcare}
+
+The Internet of Things (IoT) refers to a network of physical devices embedded with sensors, software, and connectivity that enables them to collect and exchange data without direct human intervention \cite{Atzori2010}. In healthcare, IoT applications range from wearable fitness trackers to hospital-grade patient monitors. For elderly care specifically, IoT solutions aim to enable ``ageing in place''---allowing older adults to live safely and independently in their own homes while remaining connected to caregivers and medical services.
+
+A typical IoT healthcare architecture consists of three tiers: (1) the perception layer, comprising sensors and actuators; (2) the network/transport layer, handling wireless communication protocols; and (3) the application layer, where data is stored, processed, and presented to users \cite{Islam2015}. This project follows this three-tier model, with the ESP32 node at the perception layer, MQTT with TLS at the transport layer, and the Flask backend combined with web and mobile frontends at the application layer.
+
+\section{Message Queuing Telemetry Transport (MQTT)}
+
+MQTT is a lightweight publish-subscribe messaging protocol designed for constrained devices and low-bandwidth, high-latency networks \cite{Banks2019}. It is standardised as an OASIS specification (version 5.0 as of 2019). MQTT operates over TCP/IP and introduces a broker that decouples publishers from subscribers: a sensor node publishes a message to a topic, and the broker fan-outs that message to all subscribed clients.
+
+MQTT defines three Quality-of-Service (QoS) levels:
+\begin{itemize}
+    \item QoS 0 --- At most once (fire-and-forget): suitable for high-frequency sensor streams where occasional loss is acceptable.
+    \item QoS 1 --- At least once: guarantees delivery but may produce duplicates.
+    \item QoS 2 --- Exactly once: highest reliability, highest overhead.
+\end{itemize}
+
+This project uses QoS 0 for all MQTT traffic---both continuous sensor telemetry (temperature, humidity, light, PIR) and device control commands---prioritising throughput and implementation simplicity; the application layer handles any necessary retransmission logic. The EMQX Cloud broker is hosted on AWS and accessed over TLS port 8883, ensuring confidentiality of transmitted data.
+
+\section{Sensors and Embedded Hardware}
+
+\subsection{ESP32 Microcontroller}
+
+The ESP32 is a 32-bit dual-core system-on-chip (SoC) manufactured by Espressif Systems. It features integrated Wi-Fi (802.11 b/g/n) and Bluetooth 4.2/BLE, 34 programmable GPIO pins, multiple ADC channels, and up to 520 KB of SRAM \cite{Espressif2023}. Its combination of wireless connectivity, processing power, and low idle current draw makes it the dominant choice for IoT edge nodes.
+
+\subsection{DHT11 Temperature and Humidity Sensor}
+
+The DHT11 is a single-wire digital sensor capable of measuring temperature in the range of 0--50\,$^\circ$C ($\pm2\,^\circ$C accuracy) and relative humidity in the range of 20--80\% RH ($\pm5$\% accuracy). Data is transmitted as a 40-bit serial packet. Despite its modest accuracy, the DHT11 is widely used in indoor monitoring applications due to its low cost and simple interface.
+
+\subsection{Light-Dependent Resistor (LDR)}
+
+An LDR (photoresistor) changes its electrical resistance according to incident light intensity. The ESP32's 12-bit ADC reads the voltage divider output and the firmware maps the raw ADC value (0--4095) to a normalised scale of 0--100, where 0 represents complete darkness and 100 represents full illumination.
+
+\subsection{Passive Infrared (PIR) Motion Sensor}
+
+A PIR sensor detects infrared radiation emitted by warm bodies. It is commonly used for occupancy detection. In this project, the PIR output is read on a digital GPIO pin; the firmware publishes a change event only when the status transitions between detected and not-detected, reducing unnecessary MQTT traffic.
+
+\subsection{BLE Heart-Rate Monitor}
+
+The Coospo H6 is a Bluetooth Low Energy chest-strap heart-rate monitor that conforms to the Bluetooth Generic Attribute Profile (GATT) Heart Rate Service (UUID 0x180D). The host computer running the backend includes a dedicated Python process (\texttt{coospo\_reader.py}) that uses the \texttt{bleak} BLE library to connect to the H6 and bridges received heart-rate measurements to the MQTT broker, making them available to the backend like any other sensor topic.
+
+\section{Machine Learning for Health Anomaly Detection}
+
+\subsection{Anomaly Detection Overview}
+
+Anomaly detection is the problem of identifying observations that deviate significantly from expected patterns. In healthcare, anomaly detection is applied to vital signs, activity patterns, and physiological time-series to flag potential adverse events. Approaches include statistical methods (z-score, CUSUM), clustering-based methods (k-means, DBSCAN), and model-based methods (autoencoders, Isolation Forest) \cite{Chandola2009}.
+
+\subsection{Isolation Forest}
+
+Isolation Forest is an unsupervised ensemble anomaly detection algorithm introduced by Liu et al.\ \cite{Liu2008}. It isolates anomalies by recursively partitioning the feature space with random splits. Anomalies, being rare and ``different'', require fewer splits to be isolated than normal observations, yielding a shorter path length in the tree. The anomaly score is derived from the average path length across all trees in the forest.
+
+Isolation Forest is well-suited for this project because:
+\begin{itemize}
+    \item It is trained only on normal data, making it applicable even when labelled anomaly examples are unavailable;
+    \item It handles multi-dimensional feature spaces efficiently;
+    \item It has few hyperparameters (number of trees, contamination fraction);
+    \item It is available in scikit-learn, enabling rapid prototyping.
+\end{itemize}
+
+The feature vector used in this project consists of: heart rate (bpm), room temperature ($^\circ$C), relative humidity (\%), ambient light level (0--100), hour of day (0--23), binary night flag, and binary darkness flag.
+
+\section{Generative AI and Conversational Assistants}
+
+Large Language Models (LLMs) such as GPT-4 \cite{OpenAI2023} and Google Gemini \cite{Gemini2024} have demonstrated remarkable abilities in natural-language understanding, instruction following, and contextual reasoning. When augmented with domain-specific knowledge through system-prompt injection, LLMs can act as expert assistants within constrained domains.
+
+In this project, Alfred is implemented on a hybrid architecture with a locally-hosted Ollama LLM \cite{Ollama2023} (Qwen2.5:3b) as the primary inference engine and Google Gemini 2.5 Flash \cite{Gemini2024} as an optional cloud fallback. A rich system prompt encodes: (1) the smart home topology (rooms, devices, sensor types); (2) health risk thresholds and care guidelines; and (3) contextual sensor state injected at query time. This design is simpler and lower-latency than a full Retrieval-Augmented Generation (RAG) pipeline while still providing domain-aware, relevant responses.
+
+\section{Web and Mobile Application Frameworks}
+
+\subsection{Flask}
+
+Flask is a lightweight Python web framework following the WSGI specification \cite{Ronacher2010}. Its minimal core and extensive ecosystem of extensions (such as Flask-SocketIO, Flask-Limiter, and Flask-SQLAlchemy) make it suitable for building REST APIs with real-time capabilities in research and prototype settings.
+
+\subsection{Flutter}
+
+Flutter is Google's open-source UI toolkit for building natively compiled applications for mobile, web, and desktop from a single Dart codebase \cite{Flutter2023}. Its reactive widget model and the Riverpod state management library enable efficient, testable UI architecture. Flutter's hot-reload feature significantly accelerates iterative development.
+
+\section{Related Works}
+
+Several prior works have addressed IoT-based elderly monitoring systems, and broader ambient-assisted living surveys summarize the design space for older-adult support technologies \cite{Rashidi2013}. Table~\ref{tab:related} compares this project against three representative implemented systems.
+
+\begin{table}[ht]
+\centering
+\caption{Comparison of related IoT elderly-care systems}
+\label{tab:related}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Feature} & \textbf{Ours} & \cite{Alam2012} & \cite{Suryadevara2014} \\
+\midrule
+Environmental sensing       & \checkmark & \checkmark & \checkmark \\
+Heart-rate monitoring       & \checkmark & $\times$   & $\times$   \\
+ML anomaly detection        & \checkmark & $\times$   & \checkmark \\
+AI conversational assistant & \checkmark & $\times$   & $\times$   \\
+Floor-plan map editor       & \checkmark & $\times$   & $\times$   \\
+Mobile application          & \checkmark & $\times$   & $\times$   \\
+Open-source stack           & \checkmark & \checkmark & $\times$   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Alam et al.\ \cite{Alam2012} proposed a ZigBee-based home monitoring system targeting elderly activity recognition. While effective for activity inference, it lacked physiological monitoring and any intelligent assistance layer. Suryadevara and Mukhopadhyay \cite{Suryadevara2014} employed wireless sensor networks and fuzzy inference for wellness determination, but focused solely on activity and did not provide remote device control. At a broader level, Rashidi and Mihailidis \cite{Rashidi2013} surveyed ambient-assisted living tools for older adults and highlighted the continuing challenge of combining monitoring capability with practical usability and long-term adoption. The present work is, to the authors' knowledge, the first to combine environmental sensing, BLE heart-rate monitoring, ML anomaly detection, generative AI assistance, and an interactive floor-plan map editor within a single open-source prototype.

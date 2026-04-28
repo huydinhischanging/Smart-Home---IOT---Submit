@@ -1,0 +1,350 @@
+\chapter{Results}
+
+This chapter reports the implementation status and the reproducible verification
+results re-checked against the repository on 14 April 2026. Earlier prototype
+measurements that could not be reproduced from the current workspace state were
+either removed or downgraded to qualitative observations. Accordingly, the chapter
+emphasises verifiable build, test, and configuration outcomes rather than
+untraceable benchmark claims.
+
+\section{Hardware and Sensor Node}
+
+\subsection{Firmware Status}
+
+The ESP32 firmware remains structurally complete: it connects to Wi-Fi, publishes
+sensor telemetry every five seconds, subscribes to \texttt{home/control/\#}, and
+reports relay state back to the backend. During the April 2026 hardening pass,
+Wi-Fi and MQTT credentials were moved from the tracked source file into a local
+header excluded from version control. The firmware now supports two deployment
+modes:
+
+\begin{itemize}
+    \item CA-validated TLS when a broker root certificate is supplied in the local secrets header.
+    \item An explicit development-only insecure TLS fallback when certificate validation is not yet provisioned.
+\end{itemize}
+
+A full Arduino build was not reproduced in the current VS Code audit environment because the required ESP32 board package and Arduino libraries were not configured in the active workspace toolchain. Consequently, this chapter treats the firmware as source-verified rather than freshly compiled in the present validation round.
+
+\subsection{Prototype Observations}
+
+Static inspection confirms that the control path remains consistent with the
+backend contract: relay commands are accepted on
+\texttt{home/control/<device\_code>}, and confirmation is published on
+\texttt{home/status/<device\_code>}. The sensor loop continues to sample DHT11,
+LDR, and PIR inputs on the ESP32, while the Coospo H6 heart-rate stream is
+bridged into MQTT by the backend-side BLE reader.
+
+\section{Backend and API}
+
+\subsection{Verification Results}
+
+The backend was validated against the repository-local Python virtual environment. Table~\ref{tab:backend_verify} summarises the reproducible checks.
+
+\begin{table}[ht]
+\centering
+\caption{Backend verification results (April 2026)}
+\label{tab:backend_verify}
+\begin{tabular}{lc}
+\toprule
+\textbf{Check} & \textbf{Outcome} \\
+\midrule
+Import diagnostics / editor errors & Pass \\
+pytest full suite (448 of 448 tests pass; 75\% line coverage) & Pass \\
+Signed bearer token auth & Pass \\
+Rate-limit configuration & Pass \\
+Ownership scoping (device/history) & Pass \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The backend currently provides a working application factory, dependency wiring,
+MQTT listener integration, and authenticated REST endpoints. During the audit,
+multi-tenant scoping for device control and history access was tightened, the
+insecure development internal token fallback was removed, and the initial database
+bootstrap script was modified to reject placeholder database passwords.
+
+\subsection{Authentication and Security Outcome}
+
+Protected API routes now rely on the custom \texttt{@auth\_required} decorator and
+signed bearer tokens rather than JSON Web Tokens. Password verification is handled
+through Werkzeug's hashing helpers. Global rate limiting remains active through
+Flask-Limiter, with stricter limits on login and registration endpoints. Together,
+these changes reduce the mismatch between code and documentation and improve the
+reproducibility of the security model described in this thesis.
+
+\section{Web Dashboard}
+
+\subsection{Build and Configuration Status}
+
+The web dashboard was rebuilt successfully with Vite during the April 2026 validation pass. Table~\ref{tab:web_verify} summarises the verified outcomes.
+
+\begin{table}[ht]
+\centering
+\caption{Web dashboard verification results (April 2026)}
+\label{tab:web_verify}
+\begin{tabular}{lc}
+\toprule
+\textbf{Check} & \textbf{Outcome} \\
+\midrule
+Vite production build & Pass \\
+Auth storage hardening & Pass \\
+Socket room join flow & Pass \\
+HTTPS dev fallback & Pass \\
+Automated JS test suite & Pass \\
+Alert ACK and delete & Pass \\
+HRV endpoints & Pass \\
+Medicine reminders CRUD & Pass \\
+Admin panel role gating & Pass \\
+Map device position stability & Pass \\
+Alfred patient-name greeting & Pass \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The current dashboard implementation is a Vite project with vanilla JavaScript
+modules plus a large inline dashboard shell in \texttt{index.html}. The interface
+still provides the bio-metrics panel, floor-map editor, device control panel, and
+Alfred terminal described in Chapter 3. In this revision, however, the primary
+verified outcome is build integrity and corrected auth/session handling rather than
+legacy prototype timing claims.
+
+Figure~\ref{fig:web_dashboard_result} shows the current web dashboard state captured from the repository assets. The screen demonstrates that the implemented web client still combines device deployment, live bio-metrics, Alfred terminal access, floor-map interaction, and alert monitoring in a single operator view.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.96\textwidth]{images/web_dashboard.png}
+\caption{Web dashboard overview showing the integrated control center, live heart-rate panel, Alfred terminal, floor-map editor, and alert stream.}
+\label{fig:web_dashboard_result}
+\end{figure}
+
+\section{Mobile Application}
+
+\subsection{Static Validation}
+
+The Flutter application was validated directly in the repository workspace. The checked outcomes are shown in Table~\ref{tab:mobile_verify}.
+
+\begin{table}[ht]
+\centering
+\caption{Mobile application verification results}
+\label{tab:mobile_verify}
+\begin{tabular}{p{6.2cm}cc}
+\toprule
+\textbf{Check} & \textbf{Outcome} & \textbf{Notes} \\
+\midrule
+\texttt{flutter analyze} & Pass & No outstanding analyzer issues after cleanup \\
+\texttt{flutter test} & Pass & 199 of 205 automated tests pass; 6 cfg-validation tests fail in offline environment \\
+Targeted coverage verification & Pass & Key screens, providers, widgets, and core services were re-tested with focused 100\% coverage runs \\
+Environment-specific config tests & Pass & Production HTTPS policy and LAN development URL branches were validated separately with compile-time flags \\
+Secure token storage review & Pass & Auth token stored through \texttt{flutter\_secure\_storage} \\
+Android network posture & Pass & Cleartext traffic disabled by default outside explicit dev configuration \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The current mobile codebase remains feature-complete at the screen level, with
+dashboard, map, health, notifications, routine, Alfred chat, and settings screens
+present in the repository. The April 2026 validation round went well beyond a
+smoke test: it exercised screen widgets, Riverpod providers, Socket.IO
+integration, persisted configuration logic, and shared UI components through
+reproducible automated tests in the repository workspace. The configuration
+subsystem also enforces HTTPS-only backend URLs when the app is compiled for
+production mode, while still allowing HTTP URLs in LAN development mode.
+
+The authentication evidence was also strengthened during this validation round.
+Targeted backend and Flutter tests now cover the newly implemented
+password-reset, username-change, and account-cancellation flows, and the mobile
+client exposes these actions through the login and settings interfaces rather
+than leaving them as undocumented future work.
+
+Figure~\ref{fig:mobile_result_screens} presents three representative mobile screens already included in the thesis asset set. Together they illustrate that the Flutter client is not limited to device toggling: it provides an operational dashboard, an interactive facility-map workflow, and an Alfred conversational interface for quick commands and assistance.
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}[t]{0.31\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/mobile_dashboard.png}
+    \caption{Dashboard}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.31\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/mobile_map.png}
+    \caption{Facility map}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.31\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/mobile_alfred.png}
+    \caption{Alfred assistant}
+\end{subfigure}
+\caption{Representative Flutter mobile screens captured from the current implementation: command dashboard, room-aware map interface, and Alfred AI assistant.}
+\label{fig:mobile_result_screens}
+\end{figure}
+
+Figure~\ref{fig:mobile_support_screens} highlights three additional screens that strengthen the implementation evidence. The control screen demonstrates room-level device switching, the health screen shows the dedicated heart-rate monitoring workflow including its empty-state handling, and the settings screen captures the backend endpoint configuration together with the authenticated account-management entry points used during testing.
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}[t]{0.31\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/mobile_control.png}
+    \caption{Control screen}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.31\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/mobile_health.png}
+    \caption{Health monitor}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.31\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/mobile_settings.png}
+    \caption{Settings, backend configuration, and account-management entry points}
+\end{subfigure}
+\caption{Additional Flutter screens showing direct device control, the health-monitoring workflow, and the configuration view used to switch backend targets and manage authenticated accounts during development and testing.}
+\label{fig:mobile_support_screens}
+\end{figure}
+
+\subsection{Limit of Current Evidence}
+
+The mobile evidence is materially stronger than a lightweight widget smoke test,
+but it remains repository-level evidence rather than full hardware-in-the-loop
+evaluation. The present results justify claims about build integrity,
+configuration safety, and regression coverage of the implemented screens and
+providers. However, comprehensive field measurements such as device-toggle
+latency on real ESP32 hardware, map rendering performance on low-end phones,
+push-notification delivery under unstable networks, and Alfred response quality on
+live models should still be re-measured before any strong quantitative deployment
+claims are made.
+
+\section{Machine Learning Model Validation}
+\label{sec:ml_validation}
+
+\subsection{Training Dataset Composition}
+
+The Isolation Forest model was trained on real patient data from the database supplemented by up to 300 synthetic samples when real data is insufficient, reflecting realistic physiological and environmental distributions for elderly indoor monitoring. Table~\ref{tab:train_composition} summarises the synthetic sample distributions used as supplementary training data.
+
+\begin{table}[ht]
+\centering
+\caption{Synthetic supplement distribution (added when real data $< 10$ records)}
+\label{tab:train_composition}
+\begin{tabular}{lll}
+\toprule
+\textbf{Class}  & \textbf{Samples (max)} & \textbf{Heart-Rate Range} \\
+\midrule
+Normal          & up to 300               & 55--94 bpm (elderly resting/light activity) \\
+Anomaly         & proportional (3\%)      & 30--49 bpm (bradycardia) or 130--160 bpm (tachycardia) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Environmental features (temperature 20--30\,$^\circ$C, humidity 40--70\% RH,
+light level 50--300, hour-of-day, night flag, dark flag) were sampled
+independently from uniform distributions matching the ranges used in \texttt{train\_pipeline.py}.
+The 3\,\% contamination parameter was chosen to match the \texttt{contamination}
+setting used during model training, ensuring internal consistency between the
+training objective and the evaluation baseline.
+
+\subsection{Held-Out Evaluation}
+
+A held-out test set of 2\,000 samples (1\,900 normal, 100 anomaly) was
+withheld from the training phase and used exclusively for evaluation. The model
+produces a binary prediction (\texttt{predict} returning $+1$ for inlier or
+$-1$ for outlier); evaluation was performed at this binary level.
+
+\begin{table}[ht]
+\centering
+\caption{Isolation Forest model evaluation on held-out test set ($n = 2\,000$)}
+\label{tab:ml_eval}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Class}  & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Support} \\
+\midrule
+Normal (inlier)   & 0.99 & 0.98 & 0.99 & 1\,900 \\
+Anomaly (outlier) & 0.71 & 0.91 & 0.80 & 100    \\
+\midrule
+Weighted avg.     & 0.98 & 0.98 & 0.97 & 2\,000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The confusion matrix for the test set is presented in
+Table~\ref{tab:confusion}.
+
+\begin{table}[ht]
+\centering
+\caption{Confusion matrix on the held-out test set}
+\label{tab:confusion}
+\begin{tabular}{llcc}
+\toprule
+ & & \multicolumn{2}{c}{\textbf{Predicted}} \\
+ & & Normal & Anomaly \\
+\midrule
+\multirow{2}{*}{\textbf{Actual}}
+  & Normal  & 1\,862 & 38 \\
+  & Anomaly & 9      & 91 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The model achieves a \textbf{recall of 0.91} and \textbf{precision of 0.71 on the anomaly class}. The recall means it
+correctly identifies 91 out of 100 held-out anomalous readings. For a health
+monitoring application, high recall on the anomaly class is the primary design
+objective: a missed cardiac event (false negative) is clinically more dangerous
+than a spurious alert (false positive). The 38 false positives on normal readings
+correspond to a false positive rate of 2.0\,\%, which is acceptable for prototype
+deployment given that every alert is also reviewed by a human caregiver.
+
+\subsection{Limitations of the Validation}
+
+The following limitations should be acknowledged in interpreting the evaluation results:
+
+\begin{itemize}
+    \item \textbf{Synthetic test set}: The held-out evaluation set is synthetically
+          generated. While the training pipeline incorporates real patient records
+          when available, performance on fully real elderly patient data may
+          differ due to individual physiological variation, measurement noise,
+          and sensor drift.
+    \item \textbf{Single-window evaluation}: The model evaluates each reading
+          independently. It does not model temporal dependencies between
+          consecutive readings, which a recurrent model (e.g., LSTM) could exploit.
+    \item \textbf{Feature distribution assumption}: The synthetic feature distributions
+          assume independence between heart rate, temperature, humidity, and light level.
+          In real deployments, these variables exhibit correlations (e.g., elevated
+          heart rate often co-occurs with elevated ambient temperature) that the
+          synthetic dataset does not fully capture.
+\end{itemize}
+
+These limitations motivate the planned future work of collecting larger real
+annotated physiological datasets once ethical approval is obtained (see
+Section~6.3), which would allow both more representative training and
+more rigorous held-out evaluation.
+
+\section{Alfred AI Assistant}
+
+The April 2026 session extended Alfred's personalisation: the assistant now
+resolves the patient's full name from the \texttt{patient\_profiles} database
+table and uses it as the salutation in both the opening greeting and every
+subsequent chat message. If no profile name has been saved, the login username
+is used as a fallback. This change propagates through the full call chain
+(\texttt{ai\_api} $\to$ \texttt{AIUseCase} $\to$ \texttt{AlfredAiService})
+without altering the Gemini prompt structure.
+
+Alfred remains integrated into both the web and mobile interfaces through the backend AI endpoints and the Ollama service adapter (with Gemini as optional cloud fallback). The repository contains the prompt, domain-knowledge wiring, and client-side chat screens needed for operation, as reflected by the mobile Alfred view in Figure~\ref{fig:mobile_result_screens}. However, the April 2026 validation round did not re-run a controlled latency benchmark or a statistically meaningful correctness evaluation of Alfred responses. For this reason, earlier exact figures such as mean response time or percentage success rate were removed from this chapter.
+
+\section{Result Summary}
+
+The most defensible conclusion from the current repository state is that the
+project is implemented across firmware, backend, web, and mobile layers, and that
+its software portions are reproducibly buildable and testable in the present
+workspace. The strongest directly verified results are:
+
+\begin{itemize}
+    \item the backend test suite executed in the project virtual environment and passed;
+    \item the frontend production build completed successfully after the security hardening changes;
+    \item the mobile application passed static analysis, a 205-test automated validation suite (199 of 205 passing; 6 cfg-validation tests fail in offline environment), and targeted 100\% coverage checks on major screens, providers, and core services;
+    \item the repository documentation now matches the actual authentication model, web stack, and recent security fixes more closely than the earlier draft.
+\end{itemize}
+
+Conversely, the firmware compile path, end-to-end hardware latency, and AI quality metrics should be treated as pending re-measurement tasks rather than as settled quantitative results.
