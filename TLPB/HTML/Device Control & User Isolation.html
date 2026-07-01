@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full System Architecture & Security Flow</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'default',
+            flowchart: { 
+                useMaxWidth: false, 
+                htmlLabels: true, 
+                curve: 'cardinal',
+                rankSpacing: 70,
+                nodeSpacing: 80
+            },
+            sequence: {
+                useMaxWidth: false,
+                messageFontFamily: 'Segoe UI',
+                actorMargin: 50
+            }
+        });
+    </script>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; color: #1c1e21; overflow-x: hidden; }
+        header { background: #1a73e8; color: white; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        .main-container { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 60px; }
+        .diagram-card { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 95%; max-width: 1200px; padding: 25px; position: relative; overflow: hidden; }
+        .diagram-title { font-size: 1.25rem; font-weight: bold; color: #1a73e8; margin-bottom: 20px; border-left: 5px solid #1a73e8; padding-left: 15px; }
+        .zoom-area { width: 100%; height: 600px; border: 1px solid #eee; border-radius: 8px; cursor: grab; background-color: #fafafa; }
+        .zoom-area:active { cursor: grabbing; }
+        .instruction { font-size: 0.85rem; color: #65676b; margin-bottom: 10px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Hệ Thống Quản Lý Thiết Bị IoT & Bảo Mật Đa Người Dùng</h1>
+    <p>Tài liệu Thiết kế Kỹ thuật Luận văn - Tu Dinh Huy</p>
+</header>
+
+<div class="main-container">
+
+    <div class="diagram-card">
+        <div class="diagram-title">1. Quy Trình Điều Khiển Thiết Bị Cuối - Cuối (End-to-End)</div>
+        <p class="instruction">Hướng dẫn: Cuộn chuột để Zoom, nhấn giữ để kéo sơ đồ để xem chi tiết các bước.</p>
+        <div id="control-flow" class="zoom-area">
+            <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as 👤 Người dùng
+    participant APP as 📱 Flutter App
+    participant Flask as 🐍 Flask API (JWT)
+    participant DB as 🗄️ PostgreSQL
+    participant MQTT as 📡 MQTT Broker
+    participant ESP as 🔌 ESP32 Hardware
+
+    Note over User,ESP: Khởi tạo lệnh điều khiển thiết bị
+
+    User->>APP: Nhấn nút "Bật Đèn"
+    APP->>APP: Optimistic UI Update (Icon sáng ngay)
+    
+    APP->>Flask: POST /api/devices/control {device_code, action:ON}
+    Note right of Flask: JWT check identity → current_user_id
+
+    Flask->>DB: SELECT device WHERE code='den' AND user_id=current_user
+    DB-->>Flask: Hợp lệ (Device belongs to user) ✅
+    
+    Flask->>DB: Ghi log thao tác (device_logs)
+    Flask->>MQTT: Publish topic 'home/control/den' {action:ON}
+    
+    MQTT->>ESP: Chuyển tiếp lệnh JSON
+    Flask-->>APP: Phản hồi 200 OK (Đã gửi lệnh)
+
+    Note over ESP: Xử lý tại tầng phần cứng
+    ESP->>ESP: digitalWrite(GPIO17, HIGH) → Relay ON
+    ESP->>MQTT: Feedback trạng thái thực 'home/status/den' {status:ON}
+
+    MQTT->>Flask: Nhận phản hồi trạng thái
+    Flask->>DB: Cập nhật status thực tế vào DB
+    Flask->>APP: [Socket.IO] emit 'device_update' (Room theo user_id)
+
+    APP->>APP: Đồng bộ UI với trạng thái thực tế ✅
+            </pre>
+        </div>
+    </div>
+
+    <div class="diagram-card">
+        <div class="diagram-title">2. Kiến Trúc Cô Lập Dữ Liệu Đa Người Dùng (Multi-tenancy)</div>
+        <p class="instruction">Sơ đồ này giải thích cách hệ thống ngăn chặn User A điều khiển thiết bị của User B.</p>
+        <div id="security-flow" class="zoom-area">
+            <pre class="mermaid">
+flowchart TB
+    subgraph Users ["Nhóm Người Dùng Hệ Thống"]
+        direction LR
+        subgraph UserA ["👤 Gia đình Nguyễn (ID: 7)"]
+            UA_T["🔑 Token User_7"]
+            UA_D["🏠 Thiết bị Nhà A"]
+            UA_S["🔌 Socket Room '7'"]
+        end
+
+        subgraph UserB ["👤 Gia đình Trần (ID: 15)"]
+            UB_T["🔑 Token User_15"]
+            UB_D["❄️ Thiết bị Nhà B"]
+            UB_S["🔌 Socket Room '15'"]
+        end
+    end
+
+    subgraph Backend ["🛡️ Flask Security & Isolation Layer"]
+        direction TB
+        AUTH{"@jwt_required<br/>Identity Check"}
+        FILTER["SQL Logic:<br/>WHERE user_id = current_identity"]
+        DENY["❌ 403 Forbidden<br/>(Truy cập trái phép)"]
+    end
+
+    subgraph Data ["🗄️ Database Tầng Chứa Dữ Liệu"]
+        T1[(Bảng Devices - user_id FK)]
+        T2[(Bảng Health - user_id FK)]
+    end
+
+    %% Kết nối logic
+    UA_T & UB_T ==> AUTH
+    AUTH --> FILTER
+    
+    FILTER -->|"user_id=7"| T1 & T2
+    FILTER -->|"user_id=15"| T1 & T2
+
+    %% Minh họa ngăn chặn
+    UA_T -.->|"Cố ý gửi lệnh điều khiển Device B"| FILTER
+    FILTER -.->|"Truy vấn trả về NULL"| DENY
+
+    %% Phân phối thông báo Real-time
+    FILTER -- "Chỉ gửi đến" --> UA_S
+    FILTER -- "Chỉ gửi đến" --> UB_S
+
+    style UserA fill:#e3f2fd,stroke:#1565c0
+    style UserB fill:#f1f8e9,stroke:#2e7d32
+    style Backend fill:#fff3e0,stroke:#e65100
+    style Data fill:#f3e5f5,stroke:#4a148c
+    style DENY fill:#ffebee,stroke:#c62828,color:#c62828
+            </pre>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://bumbu.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+<script>
+    window.addEventListener('load', function() {
+        // Đợi Mermaid render xong (khoảng 1.5s)
+        setTimeout(() => {
+            const svgs = document.querySelectorAll('.zoom-area svg');
+            svgs.forEach(svg => {
+                svgPanZoom(svg, {
+                    zoomEnabled: true,
+                    controlIconsEnabled: true,
+                    fit: true,
+                    center: true,
+                    minZoom: 0.5,
+                    maxZoom: 10
+                });
+            });
+        }, 1500);
+    });
+</script>
+
+</body>
+</html>

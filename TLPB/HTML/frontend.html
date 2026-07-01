@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sơ đồ Kiến trúc Frontend - Smart House Platform</title>
+    <style>
+        :root {
+            --entry-color: #6c5ce7;
+            --store-color: #fab1a0;
+            --module-color: #e17055;
+            --service-color: #0984e3;
+            --target-color: #00b894;
+            --bg-color: #f5f6fa;
+            --card-bg: #ffffff;
+            --text-dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-dark);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .flow-wrapper {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .layer {
+            background: var(--card-bg);
+            border: 2px solid #dcdde1;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .layer-label {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            letter-spacing: 1.5px;
+            border-bottom: 1px solid #f1f1f1;
+            padding-bottom: 8px;
+        }
+
+        .node-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+        }
+
+        .node {
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: default;
+        }
+
+        .node:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        /* Categorized Colors */
+        .entry { background-color: var(--entry-color); }
+        .store { background-color: var(--store-color); color: #2d3436; font-weight: 600; }
+        .module { background-color: var(--module-color); }
+        .service { background-color: var(--service-color); }
+        .target { background-color: var(--target-color); }
+
+        .arrow {
+            text-align: center;
+            font-size: 24px;
+            color: #bdc3c7;
+            margin: -5px 0;
+            user-select: none;
+        }
+
+        .sub-text {
+            display: block;
+            font-size: 0.7rem;
+            margin-top: 6px;
+            opacity: 0.9;
+            font-weight: normal;
+        }
+
+        .file-path {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.65rem;
+            margin-top: 4px;
+            background: rgba(0,0,0,0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 600px) {
+            .node-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 style="margin: 0;">KIẾN TRÚC FRONTEND - SMART HOUSE PLATFORM</h1>
+        <p style="color: #636e72;">Luồng khởi tạo và phối hợp các phân hệ chức năng</p>
+    </header>
+
+    <div class="flow-wrapper">
+        <!-- Layer 1 -->
+        <div class="layer">
+            <div class="layer-label">1. Điểm khởi chạy (Entry Layer)</div>
+            <div class="node-grid">
+                <div class="node entry">
+                    <b>main.js</b>
+                    <span class="sub-text">Khởi động giao diện & Nạp State</span>
+                    <span class="file-path">src/main.js</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow">↓</div>
+
+        <!-- Layer 2 -->
+        <div class="layer">
+            <div class="layer-label">2. Quản lý trạng thái (Pinia Stores)</div>
+            <div class="node-grid">
+                <div class="node store">Auth Store<span class="sub-text">Session & User Profile</span><span class="file-path">stores/auth.store.js</span></div>
+                <div class="node store">Device Store<span class="sub-text">IoT Device States</span><span class="file-path">stores/device.store.js</span></div>
+                <div class="node store">Alert Store<span class="sub-text">Realtime Warnings</span><span class="file-path">stores/alert.store.js</span></div>
+                <div class="node store">UI Store<span class="sub-text">Theme & Layout State</span><span class="file-path">stores/ui.store.js</span></div>
+            </div>
+        </div>
+
+        <div class="arrow">↓</div>
+
+        <!-- Layer 3 -->
+        <div class="layer">
+            <div class="layer-label">3. Phân hệ chức năng (Functional Modules)</div>
+            <div class="node-grid">
+                <div class="node module"><b>Dashboard</b><span class="sub-text">Core Control Hub</span><span class="file-path">dashboard.controller.js</span></div>
+                <div class="node module"><b>Alfred AI</b><span class="sub-text">Voice & Terminal</span><span class="file-path">companion/voice.js</span></div>
+                <div class="node module"><b>Alert System</b><span class="sub-text">Emergency & Reminders</span><span class="file-path">alert.controller.js</span></div>
+                <div class="node module"><b>Visual Modules</b><span class="sub-text">Map & ECG Charts</span><span class="file-path">map/room-selector.js</span></div>
+            </div>
+        </div>
+
+        <div class="arrow">↓ ↑</div>
+
+        <!-- Layer 4 -->
+        <div class="layer">
+            <div class="layer-label">4. Tầng dịch vụ (Communication Layer)</div>
+            <div class="node-grid">
+                <div class="node service"><b>ApiClient Facade</b><span class="sub-text">REST API Interface</span><span class="file-path">services/api/index.js</span></div>
+                <div class="node service"><b>Socket.IO Client</b><span class="sub-text">Realtime Event Listener</span><span class="file-path">services/socket.client.js</span></div>
+            </div>
+        </div>
+
+        <div class="arrow">↓ ↑</div>
+
+        <!-- Layer 5 -->
+        <div class="layer">
+            <div class="layer-label">5. Tích hợp hệ thống (System Integration)</div>
+            <div class="node-grid">
+                <div class="node target"><b>Flask Backend</b><span class="sub-text">Business Logic & MySQL</span></div>
+                <div class="node target"><b>Socket.IO Server</b><span class="sub-text">Realtime Dispatcher</span></div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

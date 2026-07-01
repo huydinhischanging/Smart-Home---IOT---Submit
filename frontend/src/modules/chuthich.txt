@@ -1,0 +1,4 @@
+src/modules/device/
+├── device.icons.js        # dữ liệu icon
+├── device.view.js         # render DOM + icon picker
+├── device.controller.js   # facade export (thay DeviceManager)

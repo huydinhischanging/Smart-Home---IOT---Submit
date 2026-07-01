@@ -1,0 +1,130 @@
+<mxGraphModel dx="1942" dy="1010" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1400" pageHeight="960" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="laptop" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;dashPattern=8 4;fillColor=none;strokeColor=#666666;strokeWidth=2;fontStyle=1;fontSize=16;align=center;verticalAlign=top;spacingTop=6;" value="Developer Laptop" vertex="1">
+      <mxGeometry height="568" width="805" x="200" y="38" as="geometry" />
+    </mxCell>
+    <mxCell id="flask" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;align=center;verticalAlign=top;spacingTop=8;" value="&lt;b&gt;Flask + MySQL&lt;/b&gt;&lt;br&gt;localhost:5000" vertex="1">
+      <mxGeometry height="275" width="352" x="415" y="192" as="geometry" />
+    </mxCell>
+    <mxCell id="rule_eng" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;align=center;verticalAlign=middle;" value="&lt;b&gt;Rule engine&lt;/b&gt;&lt;br&gt;alfred_knowledge.py&lt;br&gt;&lt;i&gt;in-process (no network call)&lt;/i&gt;" vertex="1">
+      <mxGeometry height="66" width="215" x="477.5" y="252" as="geometry" />
+    </mxCell>
+    <mxCell id="apscheduler" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;align=center;verticalAlign=middle;" value="&lt;b&gt;APScheduler&lt;/b&gt;&lt;br&gt;automations · schedules · reminders · email alerts" vertex="1">
+      <mxGeometry height="74" width="218" x="473" y="340" as="geometry" />
+    </mxCell>
+    <mxCell id="ollama" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" value="&lt;b&gt;Ollama&lt;/b&gt;&lt;br&gt;qwen2.5:3b&lt;br&gt;localhost:11434" vertex="1">
+      <mxGeometry height="72" width="140" x="222" y="192" as="geometry" />
+    </mxCell>
+    <mxCell id="ble_bridge" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" value="&lt;b&gt;coospo_reader.py&lt;/b&gt;&lt;br&gt;BLE bridge" vertex="1">
+      <mxGeometry height="65" width="140" x="222" y="383" as="geometry" />
+    </mxCell>
+    <mxCell id="esp32" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" value="&lt;b&gt;ESP32 Node&lt;/b&gt;&lt;br&gt;DHT11 · LDR · PIR · Relays" vertex="1">
+      <mxGeometry height="65" width="132" x="18" y="100" as="geometry" />
+    </mxCell>
+    <mxCell id="coospo" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" value="&lt;b&gt;Coospo H6&lt;/b&gt;&lt;br&gt;BLE chest strap" vertex="1">
+      <mxGeometry height="65" width="132" x="18" y="478" as="geometry" />
+    </mxCell>
+    <mxCell id="emqx" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" value="&lt;b&gt;EMQX Cloud&lt;/b&gt;&lt;br&gt;MQTT broker (TLS 8883)" vertex="1">
+      <mxGeometry height="68" width="165" x="1065" y="92" as="geometry" />
+    </mxCell>
+    <mxCell id="gemini" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" value="&lt;b&gt;Google Gemini&lt;/b&gt;&lt;br&gt;cloud API" vertex="1">
+      <mxGeometry height="68" width="165" x="1065" y="312" as="geometry" />
+    </mxCell>
+    <mxCell id="gmail" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" value="&lt;b&gt;Gmail SMTP&lt;/b&gt;&lt;br&gt;smtp.gmail.com:587" vertex="1">
+      <mxGeometry height="68" width="165" x="1065" y="496" as="geometry" />
+    </mxCell>
+    <mxCell id="web" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;align=center;verticalAlign=middle;" value="&lt;b&gt;Web browser&lt;/b&gt;&lt;br&gt;Vite dashboard" vertex="1">
+      <mxGeometry height="65" width="155" x="467" y="656" as="geometry" />
+    </mxCell>
+    <mxCell id="flutter" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;align=center;verticalAlign=middle;" value="&lt;b&gt;Flutter mobile&lt;/b&gt;&lt;br&gt;Android / iOS" vertex="1">
+      <mxGeometry height="65" width="155" x="712" y="656" as="geometry" />
+    </mxCell>
+    <mxCell id="e_esp_emqx" edge="1" parent="1" source="esp32" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;align=center;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" target="emqx" value="WiFi · MQTT/TLS">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="51" y="12" />
+          <mxPoint x="1189" y="12" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_emqx_esp" edge="1" parent="1" source="emqx" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;align=center;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="esp32" value="MQTT (device cmd)">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1147" y="26" />
+          <mxPoint x="84" y="26" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_flask_sub" edge="1" parent="1" source="flask" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;exitX=1;exitY=0.28;exitDx=0;exitDy=0;entryX=0;entryY=0.38;entryDx=0;entryDy=0;" target="emqx" value="MQTT (subscribe)">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="873" y="269" />
+          <mxPoint x="873" y="118" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_emqx_pub" edge="1" parent="1" source="emqx" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;exitX=0;exitY=0.6;exitDx=0;exitDy=0;entryX=1;entryY=0.48;entryDx=0;entryDy=0;" target="flask" value="MQTT (publish)">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_flask_gemini" edge="1" parent="1" source="flask" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;dashed=1;dashPattern=6 3;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="gemini" value="HTTPS">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="916" y="330" />
+          <mxPoint x="916" y="346" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_flask_gmail" edge="1" parent="1" source="flask" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="gmail" value="SMTP STARTTLS (587)">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_flask_ollama" edge="1" parent="1" source="flask" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;dashed=1;dashPattern=6 3;endArrow=block;startArrow=block;startFill=1;endFill=1;exitX=0;exitY=0.35;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="ollama" value="HTTP REST">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_coospo_bridge" edge="1" parent="1" source="coospo" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="ble_bridge" value="BLE GATT">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_bridge_flask" edge="1" parent="1" source="ble_bridge" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.68;entryDx=0;entryDy=0;" target="flask" value="HTTP REST">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_flask_web_ws" edge="1" parent="1" source="flask" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;endArrow=block;startArrow=block;startFill=1;endFill=1;exitX=0.35;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" target="web" value="WebSocket (real-time)">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="538" y="556" />
+          <mxPoint x="453" y="556" />
+          <mxPoint x="453" y="672" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_flask_web_rest" edge="1" parent="1" source="flask" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;endArrow=block;startArrow=block;startFill=1;endFill=1;exitX=0.48;exitY=1;exitDx=0;exitDy=0;entryX=0.595;entryY=-0.003;entryDx=0;entryDy=0;entryPerimeter=0;" target="web" value="HTTP REST">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="584" y="561" />
+          <mxPoint x="618" y="561" />
+          <mxPoint x="618" y="631" />
+          <mxPoint x="559" y="631" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_flask_flutter_rest" edge="1" parent="1" source="flask" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;endArrow=block;startArrow=block;startFill=1;endFill=1;exitX=0.65;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" target="flutter" value="HTTP REST">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_flask_flutter_ws" edge="1" parent="1" source="flask" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;endArrow=block;startArrow=block;startFill=1;endFill=1;exitX=0.963;exitY=0.954;exitDx=0;exitDy=0;entryX=0.65;entryY=0;entryDx=0;entryDy=0;exitPerimeter=0;" target="flutter" value="WebSocket (real-time)">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="813" y="454" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_emqx_flutter" edge="1" parent="1" source="emqx" style="edgeStyle=orthogonalEdgeStyle;fontSize=14;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="flutter" value="MQTT/TLS">
+      <mxGeometry relative="1" x="-0.6287" y="-3" as="geometry">
+        <mxPoint y="-1" as="offset" />
+        <Array as="points">
+          <mxPoint x="1244" y="126" />
+          <mxPoint x="1244" y="689" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+  </root>
+</mxGraphModel>

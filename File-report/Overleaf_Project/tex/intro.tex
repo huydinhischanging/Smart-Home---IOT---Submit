@@ -1,0 +1,163 @@
+\chapter{INTRODUCTION}
+
+\section{Background}
+
+Monitoring of the elderly at home using sensors has been studied for more than a decade~\cite{Alam2012,Suryadevara2012,Rashidi2013}. Family members or nursing staff visiting frequently can be very helpful, but they are not around 24/7. And most of those systems only tackle one problem at a time: just room conditions, just activity levels, or just heart rate.
+
+A microcontroller with a few sensors can monitor temperature, humidity, light, and motion in the home and upload that data to a backend over Wi-Fi. The stream is then fed through a simple machine learning model, which helps the system identify anomalous patterns and raise an alarm for a caregiver before the situation turns into an emergency~\cite{Chandola2009}.
+
+The system also comprises a conversational assistant---a user can type or say a natural-language command (rather than navigate menus) and have the system perform it. This keeps the platform accessible to older adults who find touch navigation difficult~\cite{Hoy2018}.
+The project is to combine these streams --- environmental sensing, physiological monitoring, anomaly detection and a conversational assistant --- into one open-source platform. Chapter~2 details a comparison of this work to representative previous systems.
+
+\section{Problem Statement}
+
+There are many off-the-shelf smart home products, but only a few are aimed at elderly care in Viet Nam. The global population of people aged 60+ reached 1 billion in 2020 and is projected to reach 2.1 billion by 2050~\cite{WHO2022}. In Viet Nam, the population aged 60+ already makes up 11.9\% of the population~\cite{GSO2019}. Older adults often require long-term medication, but the average person in long-term therapy is only 50\% adherent in developed countries~\cite{WHO2003}. This has motivated the inclusion of medicine scheduling and tracking features in this work. Most products lock users into proprietary clouds, do not integrate well with BLE medical sensors, lack anomaly alerts, and assume users are comfortable with touchscreen devices, while providing no visual indication to caregivers of which device is located in which room. This project provides a full-stack open-source platform based on off-the-shelf hardware.
+ Figure~\ref{fig:sys_overview_intro} gives a high-level view of the four-tier architecture.
+
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  tier/.style={draw, rounded corners=5pt, minimum width=9cm, minimum height=0.8cm,
+               align=center, font=\small, fill=gray!8},
+  label/.style={font=\footnotesize\itshape, text=gray!60!black},
+  arr/.style={-{Stealth[length=6pt]}, thick, gray!60},
+]
+\node[tier, fill=blue!8]   (hw)   at (0,  0)  {\textbf{Hardware layer} \quad ESP32 node \;·\; Coospo H6 BLE \;·\; PCB};
+\node[tier, fill=orange!8] (comm) at (0, -1.5) {\textbf{Communication layer} \quad EMQX Cloud MQTT over TLS (port 8883)};
+\node[tier, fill=green!8]  (be)   at (0, -3.0) {\textbf{Backend layer} \quad Flask · MySQL · Isolation Forest · Alfred AI};
+\node[tier, fill=purple!8] (ui)   at (0, -4.5) {\textbf{Presentation layer} \quad Web Dashboard (Vite) \;·\; Flutter Mobile App};
+\draw[arr] (hw)   -- (comm);
+\draw[arr] (comm) -- (be);
+\draw[arr] (be)   -- (ui);
+\draw[arr] (ui.north east) -- ++(0.6,0) |- (be.east);
+\node[label] at (5.5,-0.75)  {telemetry};
+\node[label] at (5.5,-2.25)  {MQTT};
+\node[label] at (-5.5,-3.75) {REST / Socket.IO};
+\node[label] at (5.5,-3.75)  {commands};
+\end{tikzpicture}
+\caption[Alfred Smart Home: four-tier IoT architecture overview]{Alfred Smart Home: four-tier IoT architecture overview. Full component
+         detail and data flows are presented in Figure~\ref{fig:deployment} (Chapter~3).}
+\label{fig:sys_overview_intro}
+\end{figure}
+
+\section{Scope and Objectives}
+
+\subsection{Research Questions}
+
+This project investigates the following research questions:
+
+\begin{enumerate}
+    \item \textbf{RQ1:} Can a low-cost, open-source IoT stack reliably monitor indoor conditions and physiological signals?
+
+    \item \textbf{RQ2:} Can an unsupervised ML model trained on approximated resting heart-rate derived from a clinical exercise dataset provide acceptable anomaly detection performance?
+
+    \item \textbf{RQ3:} Is a locally hosted LLM augmented with smart-home context an effective natural-language interface?
+\end{enumerate}
+
+\subsection{Implementation Objectives}
+
+The main implementation goals of this project are:
+
+\begin{enumerate}
+    \item Create an ESP32 node for temperature, humidity, light and motion monitoring, and control for two relay devices;
+    \item Build a Flask backend with a modular layered structure, MQTT data handling, REST API, real-time communication with Socket.IO;
+    \item Integrate a BLE heart-rate device (Coospo H6), and use an Isolation Forest model for anomaly detection;
+    \item Develop a web dashboard with device control, floor-plan management and data visualisation;
+    \item Develop a mobile application using Flutter with similar functionality;
+    \item Develop Alfred, a conversational AI assistant with three independent inference modes: a deterministic Rule engine for common commands, a local \texttt{qwen2.5:3b} model via Ollama for open-ended queries, and an optional Google Gemini~2.5~Flash cloud path that returns a Rule engine fallback when the cloud service is unavailable;
+    \item Evaluate the system through testing, code validation, and basic security checks.
+\end{enumerate}
+
+\subsection{Scope}
+
+This system is designed for use in a single household within a local
+network environment. The scope includes:
+
+\begin{itemize}
+    \item Single-household deployment with one ESP32 node tested in this thesis;
+          the architecture is designed to support multiple nodes via MQTT topic-based device identification
+          and backend device mapping;
+    \item One BLE heart-rate device for the primary monitored user;
+    \item MQTT broker over TLS; single-instance deployment (no failover or clustering);
+    \item Web interface for 2D floor-plan management (polygon-based room visualization and CRUD);
+    \item Full-stack implementation including firmware, backend, web, and mobile components.
+\end{itemize}
+
+\subsection{Limitations}
+
+\begin{itemize}
+    \item The deployed anomaly model (the \emph{Production deployed} configuration in Table~\ref{tab:model_configs}) is trained on all 499 UCI Heart Disease healthy records plus 1\,700 synthetic normal-HR samples; resting BPM is approximated from the \texttt{thalach} (peak exercise HR) field via a fixed scaling protocol rather than directly measured. A separate evaluation benchmark applies an 80/20 split to the 499 UCI healthy records (399 train / 100 healthy test), then evaluates against a combined test set of 626 samples (100 healthy + 526 diseased) with no synthetic data, to produce interpretable P/R/F1 metrics.
+    \item Fall detection is not yet available.
+    \item The Flask web server runs over plain HTTP in the lab prototype; the MQTT broker already uses TLS (port~8883), but the REST API and Socket.IO channel would need HTTPS before production deployment.
+    \item The system evaluation is performed only with one ESP32 node and one user.
+    \item An active internet connection is required for EMQX and Gemini API services.
+    \item The BLE heart-rate bridge requires a BLE-capable host in range of the Coospo~H6 sensor that is running all the time.
+    \item The floor-plan module only allows for 2D multi-floor visualization and does not include advanced spatial analytics.
+    \item No independent usability study with elderly or caregiver participants was conducted; system evaluation relied on a developer self-test walkthrough.
+    \item The Alfred intent benchmark covers the Rule mode only; LLM and Gemini mode accuracy under diverse user phrasing is unquantified at prototype stage.
+\end{itemize}
+
+\section{Assumption and Solution}
+
+\subsection{Key Assumptions}
+
+The design and evaluation of this system is based on the following assumptions:
+\begin{enumerate}
+\item The target deployment is a single house with a stable local Wi-Fi network and access to internet services for MQTT brokering and optional cloud AI.
+
+\item Heart rate is taken as the major physiological signal for anomaly detection, and the fall detection and the multi-modal clinical signals are reserved for future work.
+
+\item Training relies on UCI-approximated BPM rather than directly measured resting HR; the reported metrics (P\,0.96, R\,0.70, F1\,0.81) are valid for the UCI \texttt{thalach}-approximation protocol but may not generalise to clinical populations with directly measured resting HR.
+
+\item Prototype evaluation is conducted on a single ESP32 sensor node; the backend and MQTT architecture are designed to scale to multiple nodes without any firmware changes.
+
+\item At the prototype scale, a locally hosted language model (\texttt{qwen2.5:3b} via Ollama) is sufficient for the conversational assistant's natural-language understanding.
+
+\item Family caregivers are the primary users and have modest experience with smartphones; elderly users operate Alfred via voice commands or simple text input.
+
+\end{enumerate}
+
+
+\subsection{Proposed Solution}
+
+This thesis proposes \textit{Alfred Smart Home}, an open-source full-stack IoT platform for elderly care in typical Vietnamese households, to solve the identified problems. The system is made up of four main components:
+
+\begin{enumerate}
+    \item An ESP32-based hardware node with temperature, humidity, light and motion sensors and two relay-driven actuators, deployed on a two-layer PCB (reused from prior hardware coursework) as the physical platform;
+    \item A Flask backend organised into functional modules (domain, use cases, AI/ML, gateways, infrastructure, presentation), providing REST and Socket.IO APIs, MQTT integration, and an Isolation Forest anomaly detection pipeline for real-time heart-rate monitoring;
+    \item A Vite-based web dashboard and a Flutter mobile app for device control, health monitoring, floor-plan management, and a Google Calendar-style Care \& Schedule page for schedule and medicine reminder management;
+    \item Alfred, a conversational AI assistant with three independent inference modes --- Rule (deterministic keyword matching), LLM (\texttt{qwen2.5:3b} via local Ollama), and Gemini (Google Gemini~2.5~Flash with Rule engine fallback when unavailable) --- supporting both text and voice input.
+
+\end{enumerate}
+
+\section{Research Contribution}
+\label{sec:contribution}
+
+The main contributions of this thesis are as follows:
+
+\begin{enumerate}
+
+\item \textbf{Open-source integrated platform:} A full-stack prototype integrating environmental sensing, BLE heart-rate sensing, anomaly alerts, care scheduling, an interactive floor-plan interface, and a tri-modal AI assistant; all open-source.
+
+\item \textbf{Context-aware tri-modal AI:} Alfred provides prompts with live sensor readings and device status before inference. The method supports three inference modes (Rule, Ollama LLM, and Gemini) and two languages (Vietnamese and English).
+
+\item \textbf{Lightweight anomaly detection for heart rate:} Two Isolation Forest configurations were evaluated on a held-out test set containing 626 records from the UCI Heart Disease Dataset. The benchmark model (UCI-only training) prioritises recall, while the production configuration intentionally trades off recall for a lower false-alarm rate, making it more suitable for continuous home monitoring. Full performance metrics are presented in Table~\ref{tab:model_configs}. Extreme readings are still caught unconditionally by hard clinical thresholds (Table~\ref{tab:feature_ablation}).
+
+\end{enumerate}
+
+\section{Structure of Thesis}
+
+The rest of this thesis is organised as follows:
+
+\begin{itemize}
+    \item \textbf{Chapter 2:} Presents background knowledge and related work on IoT in healthcare, MQTT, embedded sensors, machine learning for anomaly detection, generative AI assistants, and representative prior systems.
+
+    \item \textbf{Chapter 3:} Presents the research design and evaluation methodology, followed by user requirements analysis, hardware design, system architecture, database schema, machine learning pipeline, Alfred AI assistant design, and system interaction flows.
+
+    \item \textbf{Chapter 4:} Presents the experimental setup, implementation-oriented validation experiments across hardware, backend, web, mobile, and end-to-end scenarios, along with the resulting build and hardware evidence.
+
+    \item \textbf{Chapter 5:} Presents the quantitative anomaly detection model evaluation, system performance analysis, security analysis, and discussion of the research questions.
+
+    \item \textbf{Chapter 6:} Concludes the thesis, summarises contributions, discusses limitations, and outlines future work.
+\end{itemize}

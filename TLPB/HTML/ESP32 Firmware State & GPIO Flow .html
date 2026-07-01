@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>ESP32 Firmware Logic & GPIO Mapping</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'default',
+            state: { useMaxWidth: false, backgroundColor: '#ffffff' },
+            flowchart: { useMaxWidth: false, curve: 'basis' }
+        });
+    </script>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f1f3f4; overflow: hidden; }
+        .header { background: #3c4043; color: white; padding: 15px 25px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); position: absolute; top: 0; width: 100%; z-index: 10; display: flex; justify-content: space-between; }
+        .container { width: 100vw; height: 100vh; cursor: grab; padding-top: 80px; display: flex; flex-direction: column; align-items: center; }
+        .section-title { background: #e8f0fe; color: #1967d2; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin-bottom: 10px; font-size: 14px; }
+        #diagram-viewport { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <strong>ESP32 Embedded Logic Architecture</strong>
+            <div style="font-size: 11px; color: #bdc1c6;">Scroll to Zoom • Drag to Pan • Firmware v1.0</div>
+        </div>
+    </div>
+
+    <div class="container" id="diagram-viewport">
+        <!-- Phần 1: State Diagram -->
+        <div class="section-title">FIRMWARE STATE MACHINE</div>
+        <pre class="mermaid">
+stateDiagram-v2
+    [*] --> BOOT
+
+    state BOOT {
+        [*] --> init_serial
+        init_serial --> init_gpio
+        init_gpio --> load_config
+        load_config --> [*]
+        note right of load_config
+            GPIO17: Relay Den | GPIO16: Relay Quat
+            GPIO32: Light Sensor (ADC)
+        end note
+    }
+
+    BOOT --> WIFI_CONNECTING
+
+    state WIFI_CONNECTING {
+        [*] --> wifi_begin
+        wifi_begin --> wait_connected
+        wait_connected --> wait_connected : timeout < 20s
+        wait_connected --> WIFI_OK : status == WL_CONNECTED
+        wait_connected --> WIFI_FAIL : timeout >= 20s
+    }
+
+    WIFI_FAIL --> WIFI_CONNECTING : retry 5s
+    WIFI_OK --> MQTT_CONNECTING
+
+    state MQTT_CONNECTING {
+        [*] --> set_broker
+        set_broker --> set_callback
+        set_callback --> client_connect
+        client_connect --> MQTT_OK : connected
+        client_connect --> MQTT_FAIL : refused
+    }
+
+    MQTT_FAIL --> MQTT_CONNECTING : retry 3s
+    MQTT_OK --> RUNNING
+
+    state RUNNING {
+        [*] --> main_loop
+        state main_loop {
+            mqtt_loop --> read_sensor
+            read_sensor --> publish_sensor
+            publish_sensor --> check_status
+            check_status --> mqtt_loop
+        }
+        
+        state MQTT_CALLBACK {
+            parse_topic --> relay_ACTION
+            relay_ACTION --> publish_ack
+        }
+        
+        main_loop --> MQTT_CALLBACK : Message Arrived
+        MQTT_CALLBACK --> main_loop : Done
+    }
+
+    RUNNING --> WIFI_CONNECTING : WiFi Lost
+    RUNNING --> MQTT_CONNECTING : MQTT Lost
+        </pre>
+
+        <div style="margin: 40px 0;"></div>
+
+        <!-- Phần 2: GPIO & MQTT Flow -->
+        <div class="section-title">HARDWARE I/O & MQTT TOPICS</div>
+        <pre class="mermaid">
+flowchart LR
+    subgraph GPIO ["📌 ESP32 Peripheral Mapping"]
+        G17["GPIO 17 (Digital Out)\nRelay ĐÈN"]
+        G16["GPIO 16 (Digital Out)\nRelay QUẠT"]
+        G32["GPIO 32 (ADC1_CH4)\nLight Sensor (0-4095)"]
+    end
+
+    subgraph MQTT_Topics ["📡 MQTT Communication"]
+        SUB1["SUB: home/control/den\n{action: ON/OFF}"]
+        SUB2["SUB: home/control/quat\n{action: ON/OFF}"]
+        PUB1["PUB: home/status/den\n{status: ON/OFF, rssi}"]
+        PUB2["PUB: home/status/quat\n{status: ON/OFF, rssi}"]
+        PUB3["PUB: home/sensors/light\n{value: lux, unit: lux}"]
+    end
+
+    SUB1 -->|"digitalWrite"| G17
+    SUB2 -->|"digitalWrite"| G16
+    G17 -->|"Feedback"| PUB1
+    G16 -->|"Feedback"| PUB2
+    G32 -->|"map(ADC, 0, 4095, 0, 100)"| PUB3
+
+    style GPIO fill:#fff9c4,stroke:#fbc02d
+    style MQTT_Topics fill:#e1f5fe,stroke:#0288d1
+    style G17 fill:#fff,stroke:#333
+    style G16 fill:#fff,stroke:#333
+    style G32 fill:#fff,stroke:#333
+        </pre>
+    </div>
+
+    <script src="https://bumbu.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const svgs = document.querySelectorAll('svg');
+                svgs.forEach(svg => {
+                    svgPanZoom(svg, {
+                        zoomEnabled: true,
+                        controlIconsEnabled: true,
+                        fit: false, center: true,
+                        minZoom: 0.5, maxZoom: 5
+                    });
+                });
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

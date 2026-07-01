@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Detailed System Architecture - IoT & Health Monitoring</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#ffffff',
+                edgeLabelBackground: '#f8f9fa',
+                tertiaryColor: '#f1f3f4',
+                lineColor: '#34495e'
+            },
+            flowchart: { 
+                useMaxWidth: false, 
+                htmlLabels: true, 
+                curve: 'cardinal',
+                rankSpacing: 60,
+                nodeSpacing: 60
+            }
+        });
+    </script>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background: #eceff1; overflow: hidden; }
+        .header { background: #263238; color: #ffffff; padding: 15px 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: absolute; top: 0; width: 100%; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
+        #diagram-container { width: 100vw; height: 100vh; cursor: grab; display: flex; justify-content: center; padding-top: 100px; }
+        .tech-badge { font-size: 10px; background: #007bff; color: white; padding: 2px 6px; border-radius: 3px; margin-left: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <strong>Full-Stack IoT Architecture</strong>
+            <div style="font-size: 11px; color: #b0bec5;">Python Backend • Flutter • ESP32 • MQTT • PostgreSQL</div>
+        </div>
+        <div style="font-size: 12px; font-weight: bold; color: #81c784;">SYSTEM INTEGRATED</div>
+    </div>
+
+    <div id="diagram-container">
+        <pre class="mermaid">
+flowchart TB
+    %% ==========================================
+    %% CLIENT LAYER
+    %% ==========================================
+    subgraph Clients["📱 Client Layer"]
+        direction LR
+        WEB["🌐 Web App<br/><small>Vanilla JS + Vite</small>"]
+        MOB["📱 Mobile App<br/><small>Flutter (Dart)</small>"]
+        ESP["🔌 ESP32 Firmware<br/><small>Arduino/C++</small>"]
+    end
+
+    %% ==========================================
+    %% SERVER EDGE
+    %% ==========================================
+    subgraph Edge["🌐 Server Edge (Entry Point)"]
+        direction TB
+        NGINX["Nginx<br/><small>Reverse Proxy / TLS</small>"]
+        GUNICORN["Gunicorn<br/><small>WSGI Process Manager</small>"]
+    end
+
+    %% ==========================================
+    %% BACKEND (PYTHON)
+    %% ==========================================
+    subgraph Backend["🐍 Backend (Python / Flask)"]
+        direction TB
+        FLASK["Flask API<br/><small>(Auth, Device, AI, Report)</small>"]
+        SIO["Flask-SocketIO<br/><small>Realtime Events</small>"]
+        MQTTGW["Flask-MQTT Gateway<br/><small>Pub/Sub Bridge</small>"]
+        SCHED["APScheduler<br/><small>Background Jobs</small>"]
+        ORM["SQLAlchemy ORM"]
+    end
+
+    %% ==========================================
+    %% DATA & MESSAGING
+    %% ==========================================
+    subgraph DataMessaging["🗄️ Data & Messaging Layer"]
+        direction LR
+        DB[("PostgreSQL / SQLite")]
+        BROKER["🟠 EMQX MQTT Broker"]
+    end
+
+    %% ==========================================
+    %% CONNECTIONS
+    %% ==========================================
+    
+    %% Clients to Edge
+    WEB & MOB ==>|"HTTPS REST + WSS"| NGINX
+    NGINX --> GUNICORN
+    GUNICORN --> FLASK
+
+    %% Backend Internals
+    FLASK --- SIO
+    FLASK --- MQTTGW
+    FLASK --> ORM
+    ORM --> DB
+    SCHED -.->|"Trigger"| FLASK
+
+    %% MQTT Flow
+    MQTTGW <==>|"MQTT Topics"| BROKER
+    ESP <==>|"Control/Status/Sensor"| BROKER
+
+    %% Real-time Feedback
+    SIO ==>|"device_update / alerts"| WEB
+    SIO ==>|"device_update / alerts"| MOB
+
+    %% Styling
+    style Clients fill:#e3f2fd,stroke:#1e88e5,stroke-width:2px
+    style Edge fill:#f1f8e9,stroke:#43a047,stroke-width:2px
+    style Backend fill:#fff3e0,stroke:#fb8c00,stroke-width:2px
+    style DataMessaging fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px
+    style FLASK font-weight:bold
+    style BROKER fill:#ffe0b2,stroke:#ef6c00
+        </pre>
+    </div>
+
+    <script src="https://bumbu.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const svg = document.querySelector('#diagram-container svg');
+                if (svg) {
+                    svgPanZoom(svg, {
+                        zoomEnabled: true,
+                        controlIconsEnabled: true,
+                        fit: true,
+                        center: true,
+                        minZoom: 0.1,
+                        maxZoom: 10
+                    });
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

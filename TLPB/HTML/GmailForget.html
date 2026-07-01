@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Forgot Password Security Sequence</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'neutral',
+            sequence: { 
+                useMaxWidth: false, 
+                showSequenceNumbers: true,
+                actorMargin: 50,
+                messageMargin: 40
+            }
+        });
+    </script>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f4f7f6; overflow: hidden; }
+        .header { background: #37474f; color: white; padding: 15px 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); position: absolute; top: 0; width: 100%; z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+        #diagram-viewport {
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            padding-top: 100px;
+        }
+        .status-badge { background: #4caf50; color: white; padding: 3px 12px; border-radius: 15px; font-size: 11px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <strong>Forgot Password & Security Recovery Flow</strong>
+            <div style="font-size: 11px; color: #b0bec5; margin-top: 4px;">Xác thực Token • Hashing SHA-256 • Bcrypt Updates</div>
+        </div>
+        <div class="status-badge">SECURE PROTOCOL</div>
+    </div>
+
+    <div id="diagram-viewport">
+        <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as 👤 Người dùng
+    participant FE as 📱 Frontend (JS/Flutter)
+    participant BE as 🐍 Backend (Flask API)
+    participant DB as 🗄️ PostgreSQL
+    participant SMTP as 📧 Gmail SMTP
+
+    Note over User,FE: Bước 1: Yêu cầu khôi phục
+    User->>FE: Nhấn "Quên mật khẩu" & nhập Email
+    FE->>BE: POST /api/auth/forgot-password {email}
+    
+    BE->>DB: Tìm User theo Email
+    
+    alt Không tìm thấy hoặc Inactive
+        DB-->>BE: null / is_active=false
+        BE-->>FE: 404/403 Error Message
+        FE-->>User: Hiển thị thông báo lỗi
+    else Email hợp lệ
+        DB-->>BE: User Object
+        BE->>BE: Tạo Secure Token (secrets.token_urlsafe)
+        BE->>BE: Hash Token (SHA-256)
+        BE->>DB: Lưu Hash & Hạn dùng (+30 phút)
+        
+        BE->>SMTP: Gửi Email chứa Token khôi phục
+        
+        alt SMTP Gửi thành công
+            SMTP-->>BE: OK
+            BE-->>FE: 200 "Email Sent"
+            FE-->>User: "Vui lòng kiểm tra hộp thư"
+        else Lỗi SMTP (Fallback Dev Mode)
+            BE-->>FE: 200 {reset_token: "..."}
+            FE-->>User: Hiển thị mã trực tiếp trên màn hình
+        end
+    end
+
+    Note over User,FE: Bước 2: Đặt lại mật khẩu mới
+    User->>FE: Nhập Token từ Email + Mật khẩu mới
+    FE->>BE: POST /api/auth/reset-password {token, new_pass}
+    
+    BE->>BE: Hash(Token) & So khớp
+    BE->>DB: Truy vấn Token Hash & Kiểm tra expires_at
+    
+    alt Token sai hoặc Hết hạn
+        DB-->>BE: Invalid / Expired
+        BE-->>FE: 401 Unauthorized
+        FE-->>User: "Mã không hợp lệ hoặc đã hết hạn"
+    else Xác thực thành công
+        BE->>DB: Cập nhật User Password (Bcrypt)
+        BE->>DB: Đánh dấu Token đã sử dụng (is_used=true)
+        BE->>BE: Tạo JWT Token mới
+        BE-->>FE: 200 {jwt_token, message: "Success"}
+        FE-->>User: ✅ Thành công! Đang chuyển hướng...
+    end
+        </pre>
+    </div>
+
+    <script src="https://bumbu.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const svg = document.querySelector('#diagram-viewport svg');
+                if (svg) {
+                    svgPanZoom(svg, {
+                        zoomEnabled: true,
+                        controlIconsEnabled: true,
+                        fit: true,
+                        center: true,
+                        minZoom: 0.1,
+                        maxZoom: 5
+                    });
+                }
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

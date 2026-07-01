@@ -1,0 +1,221 @@
+WHY - Giai thich toan bo he thong (ban dung de tra loi khi bao ve)
+Ngay cap nhat: 2026-05-11
+
+============================================================
+1) TOI TOM TAT DE TAI TRONG 30-45 GIAY NHU THE NAO?
+============================================================
+"He thong cua em la Smart Home cho nguoi cao tuoi, gom 4 khoi chinh:
+(1) Thiet bi IoT ESP32 + cam bien + Coospo H6 gui du lieu.
+(2) Backend Flask cung cap REST API, xac thuc, luu DB, scheduler, va realtime Socket.IO.
+(3) Frontend Vite/JS hien dashboard, dieu khien thiet bi, nhan canh bao realtime.
+(4) AI/LLM layer de phan tich boi canh, ho tro tro ly Alfred, va canh bao suc khoe.
+Kien truc tach lop ro: API/Gateway xu ly giao tiep + bao mat, business logic o usecase, DB o repository/model."
+
+
+============================================================
+2) FRONTEND KET NOI BACKEND RA SAO?
+============================================================
+A. Kenh 1: REST API (request/response)
+- Frontend goi HTTP den backend, vi du:
+  - Dang nhap: POST /api/auth/login
+  - Lay danh sach device: GET /api/devices
+  - Dieu khien: POST /api/devices/control
+- Sau login, backend tra token da ky (itsdangerous), dat HttpOnly cookie + co the gui bearer token.
+- Moi endpoint bao ve di qua auth_required de xac thuc.
+
+B. Kenh 2: Socket.IO (realtime push)
+- Frontend tao ket noi socket toi backend.
+- Khi connect, backend decode token va cho client vao phong rieng user_<id>.
+- Tu do backend push su kien theo dung user room, khong lo user A thay user B.
+
+C. Vi sao can ca REST + Socket?
+- REST de thao tac nghiep vu chu dong (CRUD, dieu khien, tra cuu).
+- Socket de backend day su kien ngay lap tuc (alert, mood, trang thai).
+
+
+============================================================
+3) FLASK DONG VAI TRO GI?
+============================================================
+- Flask la web framework chinh cua backend.
+- Flask blueprint chia API theo module (auth, device, room, patient, alert, reminder, ai, admin...).
+- Flask extensions quan ly thanh phan ngang:
+  - db/migrate
+  - limiter
+  - socketio
+  - auth
+- App factory create_app() khoi tao toan bo he thong va dang ky blueprint.
+
+
+============================================================
+4) HEART RATE PIPELINE (PHAN DE BI HOI NHAT)
+============================================================
+Luong xu ly tim mach tu thiet bi den giao dien:
+
+(1) Coospo/ESP32 publish MQTT topic (vd home/sensors/heart_rate)
+(2) mqtt_listener nhan message
+(3) sensor + heart_rate_ai xu ly:
+    - validate bpm
+    - tinh risk (normal/warning/emergency/anomaly)
+    - tao payload canh bao
+(4) Backend emit realtime:
+    - hr_alert (su kien tim mach)
+    - alert (su kien canh bao tong quan)
+(5) Ghi DB:
+    - luu alert history
+    - luu patient HR records de report
+(6) Frontend nhan socket event va cap nhat UI ngay
+
+Cau tra loi ngan gon:
+"Heart rate di qua MQTT -> Flask listener -> AI/rule danh gia risk -> emit Socket.IO realtime + persist vao DB -> frontend cap nhat tuc thi."
+
+
+============================================================
+5) API SURFACE - NEU GIANG VIEN HOI DOI CHUNG
+============================================================
+- Du an co nhieu endpoint (tren 30) chia nhom theo nghiep vu.
+- Cac endpoint bao ve su dung auth_required.
+- Rate limit duoc ap de tranh abuse (default 500/day, login limit rieng).
+- Co Swagger UI de test va trinh bay API.
+
+Cau tra loi ngan gon:
+"API duoc thiet ke theo nhom usecase, co xac thuc token, rate limit, va tai lieu OpenAPI/Swagger de test va doi chieu hop dong API."
+
+
+============================================================
+6) SOCKET.IO CO NHUNG EVENT NAO?
+============================================================
+Event trong he thong (tieu bieu):
+- device_status
+- alert
+- hr_alert
+- ai_mood
+- ai_advice
+- device_list_changed
+
+Luu y khi bao ve:
+- Room scoping la diem manh: emit vao room user_<id>.
+- Tranh ro ri du lieu y te giua users.
+
+
+============================================================
+7) AI XU LY RA SAO? LLM DUOC DUNG THE NAO?
+============================================================
+He thong AI gom 2 tang:
+
+Tang A - Rule/Deterministic logic
+- Xu ly nhanh, on dinh, de kiem soat.
+- Dung cho cac tac vu ro rang: bat/tat thiet bi, trigger canh bao theo nguong, parse lenh co cau truc.
+
+Tang B - LLM (Alfred)
+- Dung khi user hoi ngon ngu tu nhien, cau phuc tap, can ngu canh.
+- LLM khong cap quyen truc tiep vao DB.
+- LLM nhan context da duoc backend loc/sanitize roi moi suy luan.
+
+Cau tra loi de nho:
+"Rule engine de dam bao an toan va latency, LLM de tang tri tue hoi dap. Em uu tien rule cho lenh dieu khien thiet bi, con LLM cho dien giai/tu van."
+
+
+============================================================
+8) LLM CHAY O LUONG NAO TRONG HE THONG?
+============================================================
+Luong co ban:
+
+Frontend -> /api/ai/chat -> ai_api -> ai_usecase -> ai_service/alfred_service
+-> (neu can) lay context da duoc backend tong hop
+-> tao phan hoi
+-> tra lai REST response
+-> co the emit realtime event bo sung neu can
+
+Diem nhan manh khi tra loi:
+- LLM nam trong backend service layer, khong nam trong frontend.
+- Co fallback: neu LLM loi, he thong van co rule/response an toan.
+
+
+============================================================
+9) AI CO TRUY CAP DATABASE KHONG MA BIET NHIEU THE?
+============================================================
+Tra loi dung va an toan:
+- AI/LLM khong tu do query database.
+- Backend usecase la thanh phan truy DB, lay du lieu can thiet roi dua cho AI duoi dang context.
+- Nghia la AI "biet" qua du lieu duoc cap co kiem soat, khong phai cap quyen SQL truc tiep.
+
+Cau tra loi 1 cau:
+"AI khong duoc cap quyen DB truc tiep; backend lay va loc context truoc, sau do moi cho AI su dung."
+
+
+============================================================
+10) APSCHEDULER DUNG DE LAM GI?
+============================================================
+- Chay cac job dinh ky:
+  - kiem tra automation
+  - dispatch medicine reminders
+  - reload schedules
+- Muc tieu: tu dong hoa khong can thao tac tay.
+
+
+============================================================
+11) NEU BI HOI VE BAO MAT THI TRA LOI SAO?
+============================================================
+- Token ky bang itsdangerous, co max_age.
+- Endpoint bao ve qua decorator auth_required.
+- Rate limiting giam brute force va spam.
+- Socket room scope tranh lo data lien user.
+- Input validation + check quyen user theo tenant.
+
+
+============================================================
+12) CAU "CHOT HA" 20 GIAY KHI BI HOI DON DAP
+============================================================
+"Thiet ke cua em co 2 muc tieu: an toan va mo rong.
+An toan o cho: auth, rate limit, room scoping, va tach layer ro rang.
+Mo rong o cho: endpoint/module doc lap, scheduler rieng, AI layer rieng, co the thay model ma khong pha core logic.
+Nho do he thong van on dinh khi tang thiet bi, tang user, hoac nang cap AI."
+
+
+============================================================
+13) GOI Y CACH TRA LOI KHI EM BI RUN
+============================================================
+- Buoc 1: Noi 1 cau tong quan truoc.
+- Buoc 2: Noi luong du lieu theo mui ten (tu dau vao den dau ra).
+- Buoc 3: Chot bang 1 y ve bao mat/kiem soat.
+
+Mau 3 cau:
+1. "Chuc nang nay nam o backend Flask, frontend goi API va nhan realtime qua socket."
+2. "Du lieu di tu X -> Y -> Z, backend vua xu ly vua luu DB."
+3. "Khau kiem soat la auth + rate limit + user room scope."
+
+
+============================================================
+14) MINI SCRIPT TRA LOI NHANH THEO CHU DE
+============================================================
+A) "Lam sao frontend noi backend?"
+- "Frontend dung REST cho thao tac va Socket.IO cho realtime. Sau login, token duoc backend xac thuc, socket join room user_<id> de day dung nguoi dung."
+
+B) "Heart rate xu ly the nao?"
+- "Tim mach vao qua MQTT, backend danh gia risk bang AI/rule, emit hr_alert/alert realtime, dong thoi luu lich su vao DB de bao cao."
+
+C) "LLM nam dau trong he thong?"
+- "LLM nam service layer cua backend, duoc goi qua /api/ai/chat, nhan context da loc. Khong cap quyen query DB truc tiep."
+
+D) "Tai sao he thong biet nhieu?"
+- "Vi backend tong hop context tu DB, sensor va rules roi dua cho AI. AI chi suy luan tren context duoc cap."
+
+
+============================================================
+15) CHANH NGON TU DE TRANH BI BAT BE
+============================================================
+Nen noi:
+- "Trong pham vi phien ban hien tai..."
+- "He thong uu tien rule truoc, LLM bo tro dien giai..."
+- "Theo thiet ke bao mat, AI khong co SQL direct access..."
+
+Han che noi:
+- "AI tu doc database"
+- "socket broadcast het"
+- "khong co fallback"
+
+
+============================================================
+KET LUAN 1 CAU
+============================================================
+Backend Flask la trung tam dieu phoi: quan ly auth/API/DB/realtime/scheduler; frontend la lop tuong tac; AI-LLM la lop tri tue duoc cap context co kiem soat, nen he thong vua thong minh vua an toan.

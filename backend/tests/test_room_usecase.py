@@ -74,9 +74,7 @@ class TestCreateRoom:
         points = [{"x": 0, "y": 0}, {"x": 10, "y": 0}]
         result = usecase.create_room({"name": "Hall", "points": points}, user_id=1)
         room = db.session.get(RoomModel, result["room_id"])
-        import json
-        saved = json.loads(room.polygon_data)
-        assert saved == points
+        assert room.polygon_data == points
 
     def test_rooms_are_isolated_per_user(self, app_ctx, usecase):
         usecase.create_room({"name": "Office"}, user_id=1)

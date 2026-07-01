@@ -1,0 +1,194 @@
+SƠ ĐỒ BACKEND - IoT Smart House Platform for Elderly Care and Daily Activity Support
+
+Tài liệu này mô tả backend hiện tại theo đúng cấu trúc code thực tế, bỏ phần 3D web không còn dùng.
+
+==================================================
+1. SƠ ĐỒ TỔNG QUAN
+==================================================
+
+```mermaid
+flowchart TD
+  WEB[Web Client\nfrontend/index.html + CSS + JS] --> APP[Flask App\nbackend/app/__init__.py]
+  MOBILE[Mobile Client\nMOBILE/lib/*] --> APP
+  GUI[Desktop Control Center\nbackend/desktop_control_center/main.py] --> APP
+
+    APP --> MAIN[main_controller\n/api/health, /api/metrics, /]
+    APP --> AUTH[auth_api\nđăng ký / đăng nhập / quên mật khẩu]
+    APP --> DEV[device_api\nthiết bị & điều khiển]
+    APP --> ROOM[room_api\nphòng & sơ đồ phòng]
+    APP --> ALERT[alert_api\ncảnh báo, SOS, mute, confirm action]
+    APP --> REM[reminder_api\nnhắc thuốc]
+    APP --> AI[ai_api\nAlfred AI]
+    APP --> PAT[patient_report_api\nbáo cáo sức khỏe]
+    APP --> MAP[map_api\nbản đồ / floor / layout]
+    APP --> AUTO[automation_api\nautomation & schedule]
+    APP --> DOC[docs_api\nSwagger / OpenAPI]
+    APP --> ADMIN[admin_api\nquản trị]
+
+    AUTH --> UC[UseCases\nbackend/app/usecases]
+    DEV --> UC
+    ROOM --> UC
+    ALERT --> UC
+    REM --> UC
+    AI --> UC
+    PAT --> UC
+    MAP --> UC
+    AUTO --> UC
+    ADMIN --> UC
+
+    UC --> REPO[Repositories / Models\nbackend/app/infrastructure]
+    REPO --> DB[(MySQL)]
+
+    UC --> GW[Gateways\nMQTT / Socket.IO / Email]
+    GW --> MQTT[(MQTT Broker)]
+    GW --> WS[(Socket.IO / Realtime)]
+    GW --> MAIL[(SMTP / Brevo)]
+
+    ESP[ESP32 / Sensors / Actuators] --> MQTTRX[mqtt_listener\nbackend/app/gateways/mqtt_listener.py]
+    MQTTRX --> SENS[SensorUseCase\nhandle_sensor_data]
+    MQTTRX --> DEVUC[DeviceUseCase\nupdate_device_status]
+
+    SENS --> ALERTUC[AlertUseCase\ncreate alert realtime]
+    SENS --> HRAI[Heart Rate AI\nAnomaly / context]
+    SENS --> DB
+    DEVUC --> DB
+    DEVUC --> MQTT
+    DEVUC --> ALERTUC
+
+    SCHED[APScheduler\nbackend/app/scheduler.py] --> AUTOJOB[check automations]
+    SCHED --> REMJOB[dispatch medicine reminders]
+    SCHED --> SJOB[reload schedules]
+    AUTOJOB --> DEVUC
+    REMJOB --> REMUC[MedicineReminderUseCase]
+    REMUC --> MAIL
+    REMUC --> ALERTUC
+
+    ALERTUC --> WS
+    DEVUC --> WS
+    REMUC --> WS
+    MAIN --> WS
+```
+
+==================================================
+2. GIẢI THÍCH 6 LUỒNG CHÍNH
+==================================================
+
+LUỒNG 1 - Các kênh client đi vào backend
+- Web client: HTML/CSS/JS ở thư mục frontend gọi backend qua REST + Socket.IO.
+- Mobile client: ứng dụng Flutter gọi backend API.
+- Desktop control center: ứng dụng PyQt6 mở web control để vận hành tại máy cục bộ.
+
+LUỒNG 2 - Desktop Control Center
+- Tệp chính: backend/desktop_control_center/main.py
+- Ứng dụng PyQt6 mở một cửa sổ desktop.
+- GUI này chỉ là màn hình điều khiển, không chứa logic nghiệp vụ.
+
+LUỒNG 3 - Flask App khởi tạo toàn hệ thống
+- Tệp chính: backend/app/__init__.py
+- Flask app là nơi ghép tất cả thành phần lại với nhau:
+  - load config
+  - init database
+  - init MQTT
+  - init Socket.IO
+  - register blueprint API
+  - init scheduler
+- Ý nghĩa: đây là cổng vào trung tâm của backend.
+
+  LUỒNG 4 - API / UseCase / Repository / Database
+- Tệp vào cổng API: backend/app/presentation/api/*
+- Tầng usecase: backend/app/usecases/*
+- Tầng lưu trữ: backend/app/infrastructure/persistence/*
+- Mô hình hoạt động:
+  1) Frontend / Mobile / GUI gọi API.
+  2) API kiểm tra dữ liệu đầu vào.
+  3) API gọi usecase.
+  4) Usecase xử lý nghiệp vụ.
+  5) Usecase gọi repository để đọc/ghi MySQL.
+
+LUỒNG 5 - MQTT IoT realtime
+- Tệp nhận dữ liệu: backend/app/gateways/mqtt_listener.py
+- Tệp gửi lệnh: backend/app/gateways/mqtt_publisher.py
+- ESP32 gửi dữ liệu cảm biến hoặc trạng thái lên MQTT.
+- mqtt_listener nhận topic home/sensors/# và home/status/#.
+- Nếu là cảm biến:
+  - lưu dữ liệu vào DB
+  - cập nhật trạng thái
+  - phát cảnh báo nếu vượt ngưỡng
+- Nếu là thiết bị chấp hành:
+  - đồng bộ trạng thái về DB
+  - phản hồi realtime về UI
+
+LUỒNG 6 - Scheduler / Cảnh báo / Nhắc thuốc / AI
+- Tệp scheduler: backend/app/scheduler.py
+- Tệp nhắc thuốc: backend/app/usecases/medicine_reminder_usecase.py
+- Tệp cảnh báo: backend/app/usecases/alert_usecase.py
+- Tệp AI: backend/app/usecases/ai_usecase.py và backend/app/ai/*
+- Scheduler chạy định kỳ để:
+  - quét automation
+  - quét medicine reminders
+  - reload schedules
+
+GHI CHÚ VỀ HTML/CSS
+- HTML/CSS thuộc frontend (thư mục frontend), không phải backend core.
+- Backend chịu trách nhiệm API, realtime, scheduler, MQTT, và lưu trữ dữ liệu.
+
+==================================================
+3. MÔ TẢ TỪNG THƯ MỤC QUAN TRỌNG
+==================================================
+
+backend/app/config/
+- Cấu hình môi trường, DB, MQTT, secret key.
+
+backend/app/domain/
+- Entity và interface cốt lõi.
+
+backend/app/usecases/
+- Logic nghiệp vụ: device, alert, sensor, reminder, AI, room.
+
+backend/app/infrastructure/
+- SQLAlchemy models, repositories, file config, persistence.
+
+backend/app/presentation/
+- Flask blueprints: auth, devices, rooms, alerts, reminders, AI, map, docs, admin.
+
+backend/app/gateways/
+- Kết nối ra ngoài: MQTT publisher/listener, Socket.IO emitter, email notifier.
+
+backend/app/extensions/
+- Singleton dùng chung: db, mqtt, socketio, auth, limiter, migrate.
+
+backend/app/scheduler.py
+- Chạy job nền theo thời gian.
+
+backend/app/wiring.py
+- Ghép dependency injection giữa usecase, repository, gateway, AI.
+
+backend/desktop_control_center/
+- Ứng dụng desktop PyQt6 cho control center.
+
+==================================================
+4. ĐIỂM MẠNH CỦA BACKEND
+==================================================
+
+1) Realtime hai chiều:
+- Sensor đẩy lên backend qua MQTT.
+- Backend đẩy trạng thái / cảnh báo xuống UI qua Socket.IO.
+
+2) Có lớp nghiệp vụ rõ ràng:
+- API không đụng DB trực tiếp.
+- UseCase mới là nơi quyết định logic.
+
+3) Có automation và scheduler:
+- Hệ thống quét lịch nhắc thuốc và automation định kỳ.
+
+4) Có phối hợp nhiều thiết bị:
+- Cảm biến, quạt, đèn, relay, dashboard hoạt động như một hệ thống thống nhất.
+
+5) Có hỗ trợ người cao tuổi:
+- Nhắc thuốc, cảnh báo sức khỏe, cảnh báo môi trường, và AI trợ lý.
+
+==================================================
+5. CÂU MÔ TẢ NGẮN ĐỂ THUYẾT TRÌNH
+==================================================
+
+"Backend của đề tài được tổ chức theo mô hình nhiều tầng. Ứng dụng Flask trong tệp app/__init__.py là điểm khởi tạo trung tâm, đăng ký toàn bộ API, MQTT, Socket.IO và scheduler. Dữ liệu từ ESP32 đi vào qua mqtt_listener, sau đó được xử lý bởi usecase, lưu vào MySQL qua repository và phản hồi lại giao diện realtime qua Socket.IO. GUI Control Center chỉ là lớp hiển thị desktop, còn toàn bộ logic xử lý nằm trong backend/app. Nhờ vậy hệ thống vừa realtime, vừa dễ mở rộng, vừa phù hợp cho chăm sóc người cao tuổi." 

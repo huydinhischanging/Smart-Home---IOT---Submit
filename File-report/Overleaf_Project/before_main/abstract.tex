@@ -1,0 +1,14 @@
+\chapter*{ABSTRACT}
+\addcontentsline{toc}{chapter}{ABSTRACT}
+
+This thesis proposes \textit{Alfred Smart Home}, a full-stack IoT solution for elderly care in a typical Vietnamese household. The system consists of an ESP32 sensor node that communicates via MQTT over TLS, a modular layered Flask backend for data collection and BLE heart-rate processing, and an Isolation Forest model for anomaly detection using heart-rate data only. An AI assistant, Alfred, supports natural text and voice interaction through three selectable inference modes: a deterministic Rule engine (keyword/scenario matching), a local Ollama model (\texttt{qwen2.5:3b}), and Google Gemini 2.5 Flash for cloud-backed responses. Users interact through a web dashboard and a Flutter mobile application for device control, health monitoring, and medicine reminders.
+
+The system is evaluated across several components. A heart-rate-only Isolation Forest is assessed on a held-out set of 626 records from the UCI Heart Disease Dataset (Kaggle), with BPM approximated from peak exercise HR rather than direct resting measurements. The benchmark configuration (UCI-only training) achieved precision 0.96, recall 0.70, F1 0.81; note that dataset duplication in the UCI source may inflate this precision figure. The production-evaluated configuration (UCI plus synthetic training data) achieved precision 0.90, recall 0.35, F1 0.51, reflecting a lower contamination threshold calibrated for home monitoring where most readings are healthy. A 10-trial HTTP command dispatch benchmark measured a mean latency of 33\,ms (client to backend to EMQX Cloud) with relay actuation confirmed in all trials. All four core task scenarios passed a structured developer walkthrough. A 19-item structured benchmark for Alfred Rule mode achieved 19/19 correct intent-match responses (100\% on a developer-authored in-scope test set) across six command categories using a mock house with \texttt{unittest.mock}; the benchmark also identified and corrected one word-boundary bug in the keyword guard.
+
+The results show that an open-source IoT system combining embedded devices, machine learning, and an AI assistant can be built for elderly care at prototype scale. Future work will focus on collecting real-world longitudinal heart-rate data, extending the latency benchmark, and scaling the system to multiple devices and households.
+
+\bigskip
+\noindent\textbf{Keywords:} Internet of Things, elderly care, smart home,
+anomaly detection, Isolation Forest, large language model, ESP32, MQTT,
+Flutter.
+\newpage

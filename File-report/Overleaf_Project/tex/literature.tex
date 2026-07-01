@@ -1,0 +1,142 @@
+\chapter{LITERATURE REVIEW}
+
+\section{Internet of Things in Healthcare}
+
+The Internet of Things (IoT) refers to networks of physical devices (sensors, smart appliances, etc.) connected to the internet, thereby allowing them to collect and share data without continuous human input~\cite{Gubbi2013}. In healthcare, this ranges from simple wearable devices such as fitness trackers to more advanced monitoring systems used in hospitals to track patient conditions in real time~\cite{Islam2015}.
+
+IoT in elderly care is often used to support the “ageing in place” concept, which involves keeping older adults in their own homes for as long as possible while ensuring they are safely monitored. Instead of moving into assisted facilities, they can remain independent while caregivers or family members receive updates and alerts when something unusual happens. Majumder et al.~\cite{Majumder2017} give a broad review of this area, covering the environmental and wearable sensors, the communication links, and the data-analysis methods used to monitor older adults at home. They stress that cost and unobtrusiveness are still the main design constraints.
+
+An IoT healthcare system is typically described in three layers: perception, network, and application. The perception layer contains sensors and actuators; the network layer manages communication; and the application layer processes and presents data to users. In this project, the ESP32 represents the perception layer. BLE links the wearable heart-rate sensor to the host. MQTT over TLS delivers device data to the server. REST APIs and Socket.IO are responsible for communication between the server and the web and mobile clients in the application layer.
+
+
+\section{Communication mechanisms}
+\label{sec:comm_protocols}
+
+The system contains four communication mechanisms. The host is connected to the heart-rate sensor using BLE. Data is transferred between IoT devices and the backend via MQTT. For request--response interaction, a REST API is used, and for real-time updates to connected clients, Socket.IO is used.
+
+\textbf{MQTT} is a lightweight publish--subscribe protocol used in IoT applications~\cite{Banks2019}. Devices publish data to topics and subscribers receive messages through a broker; the system uses an EMQX Cloud broker over TLS (port 8883) with QoS 0 to reduce communication overhead.
+
+A \textbf{REST API} handles request--response interaction, providing resource access through the standard HTTP methods \texttt{GET}, \texttt{POST}, \texttt{PUT} and \texttt{DELETE}~\cite{Fielding2000}. The Flask backend exposes these APIs for authentication, device management, health-data retrieval and medicine reminders.
+
+\textbf{Socket.IO} delivers real-time updates, providing bidirectional communication between the backend and client applications~\cite{SocketIO2019}. It pushes sensor updates, device-state changes and alerts to connected clients without their having to poll the API repeatedly.
+
+\textbf{Bluetooth Low Energy (BLE)} is a low-power wireless technology widely used in wearable devices~\cite{BluetoothSIG2011}. The Coospo H6 heart-rate monitor transmits measurements via BLE, which are read by a Python bridge and republished as MQTT messages.
+
+\section{Sensors and Embedded Hardware}
+
+\subsection{ESP32 Microcontroller}
+
+ESP32 is a dual-core 32-bit SoC from Espressif Systems. It has built-in support for Wi-Fi (802.11 b/g/n) and Bluetooth 4.2/BLE communication, 34 programmable GPIO pins, multiple ADC inputs, and up to 520 KB SRAM~\cite{Espressif2023}. The ESP32 is a popular choice for many IoT and intelligent embedded systems due to its wireless connectivity, good performance, and energy-efficient architecture.
+
+\subsection{DHT11 Temperature and Humidity Sensor}
+
+The DHT11 is a single-wire digital sensor for measuring temperature and relative humidity. It can measure temperature from 0--50\,$^\circ$C ($\pm2\,^\circ$C accuracy) and relative humidity from 20--80\% RH ($\pm5$\% accuracy). The data is transmitted as a 40 bit serial packet. Although the measurement accuracy of DHT11 is low, it is widely used for indoor monitoring applications, as its low cost and simple interface make it a practical choice for constrained deployments.
+
+\subsection{Light-Dependent Resistor (LDR)}
+
+An LDR, also known as a photoresistor, changes its resistance according to the surrounding light intensity. In this system, the ESP32 measures the sensor output using its 12-bit ADC. The obtained raw reading, which ranges from 0 to 4095, is converted into a scale of 0 to 100, where 0 represents very low light conditions and 100 represents strong light intensity.
+\subsection{Passive Infrared (PIR) Motion Sensor}
+
+A PIR sensor can detect motion by sensing infrared radiation emitted by warm objects such as humans or animals. It is widely used for motion detection applications. In this system, the sensor output is connected to a digital GPIO pin of ESP32. The firmware only sends data when the sensor state changes (for example, from no motion to motion or vice versa) which helps to reduce unnecessary MQTT message traffic.
+
+\subsection{BLE Heart-Rate Monitor}
+The Coospo H6 is a Bluetooth Low Energy (BLE) heart-rate monitor that supports the standard GATT Heart Rate Service (UUID 0x180D)~\cite{BluetoothSIG2011}. Wearable heart-rate monitors of this type have been shown to provide physiologically meaningful data suitable for health-monitoring applications~\cite{Pantelopoulos2010}. In this project a python bridge program \verb|coospo_reader.py| is run on the host machine and connects to the device using \texttt{bleak}. The program receives the heart-rate measurements and publishes each measurement via MQTT so that the heart-rate data can be processed together with the environmental sensor data stream.
+
+\section{Machine Learning for Health Anomaly Detection}
+
+\subsection{Anomaly Detection Overview}
+Anomaly detection is the discovery of data points that are different from what is expected to be normal behavior. In healthcare it is applied to vital signs and physiological time-series to highlight abnormal changes that may point to a developing health problem.
+Commonly used techniques include statistical methods (z-score, CUSUM), clustering methods (k-means, DBSCAN), and machine learning models such as autoencoders and One-Class SVM~\cite{Chandola2009}, as well as more recent approaches such as LSTM-based sequence models and Isolation Forest~\cite{Liu2008}.
+
+\subsection{Algorithm Comparison and Selection Rationale}
+\label{subsec:ml_selection}
+
+After considering four candidate methods, Isolation Forest was chosen:
+
+\textbf{LSTM autoencoder.} Learns temporal dependencies and detects anomalies from reconstruction error. Effective for sequential data but requires more data and training time.
+
+\textbf{One-Class SVM.} Learns the boundary enclosing normal samples in kernel space. Performance is sensitive to kernel and $\nu$ selection, and its binary output makes four-level risk classification more challenging.
+
+\textbf{Dense autoencoder.} Uses reconstruction loss as an anomaly score. For a single numeric feature, the architecture is too complex for little gain.
+
+\textbf{Isolation Forest (chosen).} Trains on normal samples only, provides continuous anomaly scores through \texttt{decision\_function()}, supports four-level risk classification, and offers sub-millisecond inference for real-time deployment.
+
+
+\subsection{Isolation Forest}
+
+Liu et al.~\cite{Liu2008} proposed Isolation Forest, which is an unsupervised algorithm for anomaly detection. Instead of modelling normal behaviour explicitly, it partitions the feature space randomly to separate individual samples. Anomalous points are rare and far from the bulk of the data; they are isolated in fewer splits and have lower (more negative) anomaly scores than normal points.
+
+The system pipeline collects seven contextual features (three environmental sensor readings: temperature, humidity, and light; heart rate; and three temporal derivatives: hour-of-day, is\_night, and is\_dark), but the deployed model only takes \textbf{heart rate (bpm)} as input. Heart rate was found to be the strongest single signal for detecting cardiac abnormalities in initial experiments; adding the remaining features weakened the isolation effect and recall on the anomaly class (see Table~\ref{tab:feature_ablation} in Section~\ref{subsec:ablation}).
+
+\section{Conversational Assistants and Generative AI}
+
+Large language models (LLMs) like GPT-4~\cite{OpenAI2023} and Gemini~\cite{Gemini2024} have shown promising natural-language skills and are increasingly being explored as conversational interfaces for smart-home and assistive scenarios. Prior voice-assistant systems (Alexa, Siri, Cortana) have shown the accessibility of natural-language control to non-technical users~\cite{Hoy2018}. LLMs build on this ability with open domain language understanding and specialisation via a system prompt.
+
+\textbf{Local versus cloud inference.} Cloud models provide high-quality answers but suffer from latency, privacy, and internet-dependency issues. Running local models via Ollama~\cite{Ollama2023} offers lower latency and better privacy, but at the cost of reduced model capacity. The \texttt{qwen2.5:3b} model can run on a regular laptop.
+
+Alfred offers three inference modes (Rule, LLM, and Gemini), allowing users to balance speed, privacy, and response quality. Responses are augmented with sensor data, device states, and health-related context to provide context-aware assistance without a full RAG pipeline~\cite{Momand2025}.
+
+\section{Software Frameworks and Application Stack}
+\label{sec:software_arch}
+
+\subsection{Flask}
+
+Flask is a light-weight, Python web framework for creating REST APIs~\cite{Ronacher2010}. The choice made over alternatives like FastAPI and Django is discussed in Section~\ref{sec:tech_selection}.
+
+\subsection{Vite and Vanilla JavaScript Web Dashboard}
+
+Vite is a front-end build tool that provides fast development and optimized production builds~\cite{Vite2024}. The dashboard is built in Vanilla JavaScript; the interactive floor-plan editor uses the HTML Canvas 2D API for polygon drawing and zone management. The rationale for this stack, rather than heavier single-page-application frameworks, is given in Section~\ref{sec:tech_selection}.
+
+\subsection{Flutter}
+
+Flutter is an open-source framework for developing cross-platform applications from a single Dart codebase~\cite{Flutter2023}. Its selection over React Native and native development is discussed in Section~\ref{sec:tech_selection}.
+
+\section{Related Works}
+\label{sec:related}
+
+Several previous studies have investigated IoT based elderly monitoring and ambient assisted living technologies to support older adults~\cite{Rashidi2013,Liu2016}. The majority of smart-home systems are oriented mainly towards automation and usability, with fewer platforms offering to combine physiological monitoring, anomaly detection, and conversational assistance into a single solution~\cite{Stolojescu2021,Morita2023}. In Table~\ref{tab:related}, this thesis compares the proposed system with representative studies in the literature including broader survey-style works such as~\cite{Ali2025} and~\cite{Morita2023}.
+
+\begin{table}[H]
+\centering
+\caption{Comparison of related IoT elderly-care systems}
+\label{tab:related}
+\small
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Feature} & \textbf{This work } & \cite{Ali2025}$^\dagger$ & \cite{Suryadevara2012} & \cite{Stolojescu2021} & \cite{Morita2023}$^*$ \\
+\midrule
+Environmental sensing       & \checkmark & \checkmark$^\dagger$ & \checkmark & \checkmark & \checkmark$^*$ \\
+Heart-rate monitoring       & \checkmark & $\times^\dagger$    & $\times$   & $\times$   & \checkmark$^*$ \\
+ML anomaly detection        & \checkmark & \checkmark$^\dagger$ & $\times$   & $\times$   & \checkmark$^*$ \\
+AI conversational assistant & \checkmark & $\times^\dagger$    & $\times$   & $\times$   & $\times^*$ \\
+Care \& schedule (calendar, reminders) & \checkmark & $\times^\dagger$ & $\times$ & $\times$ & $\times^*$ \\
+Interactive floor-plan view & \checkmark & $\times^\dagger$    & $\times$   & $\times$   & N/A$^*$ \\
+Mobile application          & \checkmark & $\times^\dagger$    & $\times$   & \checkmark & \checkmark$^*$ \\
+Open-source stack           & \checkmark & $\times^\dagger$    & $\times$   & \checkmark & N/A$^*$ \\
+\bottomrule
+\multicolumn{6}{l}{\footnotesize $^\dagger$ \textit{Ali et al.}~\cite{Ali2025} is an edge-intelligence framework; symbols reflect reported design goals.}\\
+\multicolumn{6}{l}{\footnotesize $^*$ \textit{Morita et al.}~\cite{Morita2023} is a scoping review; symbols indicate whether the feature}\\
+\multicolumn{6}{l}{\footnotesize \phantom{$^*$} is reported across reviewed studies.} \\
+\end{tabular}
+\end{table}
+
+Ali et al.~\cite{Ali2025} proposed an IoT-based elderly monitoring framework using anomaly detection on sensor data. Suryadevara and Mukhopadhyay~\cite{Suryadevara2012} focused on activity and wellness monitoring using wireless sensor networks and threshold-based wellness functions. Stolojescu-Crisan et al. introduced a smart-home automation platform that supports heterogeneous devices in~\cite{Stolojescu2021}. In~\cite{Morita2023}, Morita et al. presented a scoping review of smart-home health-monitoring technologies and highlighted gaps such as the dominance of technology-driven development over user needs and the lack of cross-disciplinary collaboration. Pal et al.~\cite{Pal2018} look at the same gap from the user side. They surveyed 254 older adults across four Asian countries to find what makes people accept smart-home healthcare services. This end-user view balances the more technical platforms and supports the simple, caregiver-facing interfaces used in this work.
+
+The surveys that map this field tend to look at its parts separately. Reviews of IoT for healthcare~\cite{Islam2015} and of wearable monitoring~\cite{Pantelopoulos2010} focus on sensing and data collection. Broader smart-home~\cite{Alam2012} and IoT architecture reviews~\cite{Gubbi2013} focus on connectivity and automation. The anomaly-detection work~\cite{Chandola2009,Liu2008} builds general-purpose detectors but says little about how an alert actually reaches a caregiver. An elderly-care platform has to do all of this together, and that integration, not any single part, is what sets this work apart.
+
+Recent work like~\cite{Momand2025} has explored the integration of sensor context into language models for smart-home assistance. Current systems, however, do not typically combine physiological monitoring, anomaly detection, conversational AI assistance and interactive floor-plan management into a single platform. This project combines all these features in one unified system.
+
+\section*{Summary}
+\label{sec:litreview_summary}
+
+The review of the literature in this chapter identifies four persistent gaps in current IoT elderly-care systems: (1) the absence of integrated physiological monitoring with environmental sensing, (2) the limited use of conversational AI assistants with an understanding of live smart-home context, (3) the lack of interactive spatial (floor-plan) interfaces for device management, and (4) the reliance on proprietary, closed-source stacks. These gaps directly motivate the three research questions:
+
+\begin{itemize}
+    \item Gap~1 motivates \textbf{RQ1}: can a low-cost, open-source IoT stack be used for reliable indoor conditions and physiological signals monitoring?
+
+    \item \textbf{RQ2} is motivated by the open challenge of lightweight anomaly detection in elderly-care settings~\cite{Ali2025,Chandola2009} and Gap~1: can an unsupervised ML model trained on real clinical data provide acceptable anomaly detection performance?
+
+    \item Gap~2 and the new work on context-aware LLM smart-home assistants~\cite{Momand2025} inspire \textbf{RQ3}: is a locally hosted LLM augmented with smart-home context an effective natural-language interface?
+\end{itemize}
+
+The technical basis for the design choices discussed in Chapter 3 includes the background on BLE, MQTT, REST APIs, Socket.IO, Isolation Forest, LLMs, Flask, Vite, and Flutter. The system proposed in this thesis directly addresses all four identified gaps within a single open-source platform.

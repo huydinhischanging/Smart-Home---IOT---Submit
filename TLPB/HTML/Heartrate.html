@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric & HRV Analysis Pipeline</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'step' }
+        });
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #f8f9fa; }
+        .container { background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 95%; }
+        h2 { color: #d93025; margin-bottom: 20px; }
+        .note { font-size: 0.9em; color: #666; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h2>Healthcare IoT: Heart Rate & HRV Analysis Pipeline</h2>
+
+    <div class="container">
+        <pre class="mermaid">
+flowchart TD
+    %% =========================
+    %% 1) Hardware Layer
+    %% =========================
+    subgraph Data_Acquisition [Data Acquisition Layer]
+        A["Coospo H6 chest strap"] -->|BLE Advert.| B["GATT HR Service (UUID 0x180D)"]
+        B -->|Notify| C["Python BLE Bridge (Bleak)"]
+        C --> D["Parse HR Measurement (UUID 0x2A37)"]
+        D --> E["Extract BPM + Timestamp"]
+    end
+
+    E -->|MQTT Publish| F["Topic: home/sensors/heart_rate"]
+
+    %% =========================
+    %% 2) Backend Intake
+    %% =========================
+    subgraph Backend_Ingestion [Backend Ingestion Layer]
+        F --> G["Backend MQTT Listener"]
+        G --> H["Heart-rate Handler"]
+        H --> I[("Persist HR Record (PostgreSQL)")]
+        H --> J["Push Socket.IO: sensor_update"]
+    end
+
+    %% =========================
+    %% 3) Signal Processing & HRV Pipeline
+    %% =========================
+    subgraph HRV_Engine [HRV Feature Engineering]
+        H --> K["Sliding Window (BPM Samples)"]
+        K --> L["BPM to RR Interval: <br/>RR(ms) = 60000 / BPM"]
+
+        L --> RMSSD["RMSSD Calculation"]
+        L --> SDNN["SDNN Calculation"]
+        L --> PNN50["pNN50 Calculation"]
+
+        RMSSD --> M["HRV Feature Vector"]
+        SDNN --> M
+        PNN50 --> M
+    end
+
+    %% =========================
+    %% 4) Intelligence & Alerts
+    %% =========================
+    subgraph Risk_Assessment [Intelligence Layer]
+        M --> N["Anomaly Engine (Rules + ML)"]
+        N --> O{"Risk Level?"}
+        
+        O -->|Normal| P["Soft Update UI"]
+        O -->|Elevated| Q["Warning UI"]
+        O -->|High| R["Notify Caregiver (SMS/Push)"]
+        O -->|Critical| S["Immediate Emergency Alert"]
+    end
+
+    P & Q & R & S --> T["Web + Mobile Dashboard"]
+
+    %% Styling for Medical/Healthcare UI
+    style A fill:#fff3cd,stroke:#333
+    style C fill:#d1ecf1,stroke:#333
+    style G fill:#d4edda,stroke:#333
+    style M fill:#f8d7da,stroke:#333
+    style O fill:#f9f,stroke:#333,stroke-width:2px
+    style T fill:#cfe2ff,stroke:#333
+    style HRV_Engine fill:#fff5f5,stroke:#ff8a80,stroke-dasharray: 5 5
+        </pre>
+    </div>
+    
+    <p class="note">* Chú thích: RMSSD, SDNN, và pNN50 là các chỉ số quan trọng để đánh giá mức độ căng thẳng (Stress) và sức khỏe tim mạch.</p>
+
+</body>
+</html>

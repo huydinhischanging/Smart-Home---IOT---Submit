@@ -1,0 +1,75 @@
+graph TB
+    subgraph "IoT Devices Layer"
+        ESP32["🔧 ESP32<br/>Sensors & Relays<br/>Temp · HR · Light<br/>Power Control"]
+        ARDUINO["📡 Arduino Sensors<br/>Multi-sensor Suite<br/>DHT22 · BMP280<br/>Accelerometer"]
+    end
+
+    subgraph "Communication Layer"
+        MQTT["🚀 MQTT Broker<br/>mosquitto<br/>Port: 1883"]
+        WIFI["📶 WiFi Network<br/>ESP32 ↔ Broker"]
+    end
+
+    ESP32 -->|MQTT pub/sub| MQTT
+    ARDUINO -->|MQTT pub/sub| MQTT
+    WIFI -.->|Connect| ESP32
+    WIFI -.->|Connect| ARDUINO
+
+    subgraph "Backend Server"
+        FLASK["🔵 Flask API<br/>app.py / run.py<br/>/api/devices<br/>/api/ai/chat<br/>/api/alerts"]
+        AICORE["🧠 AI Core<br/>Anomaly Detection<br/>Mood Recognition<br/>Automation Logic"]
+        ALFRED["🎩 Alfred AI<br/>Ollama · Gemini<br/>Natural Language<br/>Intent Parser"]
+    end
+
+    MQTT -->|Consume Events| FLASK
+    FLASK -->|Control Logic| MQTT
+    FLASK -->|Load/Predict| AICORE
+    FLASK -->|Chat/Query| ALFRED
+
+    subgraph "Data Layer"
+        MYSQL["🗄️ MySQL Database<br/>Users · Devices<br/>Sensors · Alerts<br/>Anomalies"]
+        CACHE["⚡ Cache TTL<br/>House State<br/>Device Status"]
+    end
+
+    FLASK -->|CRUD| MYSQL
+    FLASK -->|Query| CACHE
+    AICORE -->|Log Results| MYSQL
+
+    subgraph "Notification Layer"
+        EMAIL["📧 Email Notifier<br/>SMTP Gateway<br/>Alert Delivery"]
+        SOCKETIO["📡 WebSocket<br/>Real-time Updates<br/>Device Changes<br/>AI Responses"]
+    end
+
+    FLASK -->|Send Alerts| EMAIL
+    FLASK -->|Emit Events| SOCKETIO
+
+    subgraph "Client Layer"
+        WEB["💻 Web Frontend<br/>React/Vite<br/>Dashboard<br/>Device Control<br/>AI Chat<br/>Map View"]
+        MOBILE["📱 Mobile App<br/>Flutter<br/>Android · iOS<br/>Notifications<br/>Voice Control"]
+    end
+
+    SOCKETIO -->|Real-time| WEB
+    SOCKETIO -->|Real-time| MOBILE
+    WEB -->|REST API| FLASK
+    MOBILE -->|REST API| FLASK
+
+    subgraph "External Services"
+        EXTERNAL["🌐 External APIs<br/>Gemini LLM<br/>Weather Service<br/>Email Gateway"]
+    end
+
+    ALFRED -->|Query| EXTERNAL
+    EMAIL -->|Send via| EXTERNAL
+
+    style ESP32 fill:#e8f4f8,color:#000,stroke:#2c5aa0,stroke-width:2px
+    style ARDUINO fill:#e8f4f8,color:#000,stroke:#2c5aa0,stroke-width:2px
+    style MQTT fill:#fff4e6,color:#000,stroke:#d97706,stroke-width:2px
+    style WIFI fill:#fef0f0,color:#000,stroke:#dc2626,stroke-width:2px
+    style FLASK fill:#f0f4ff,color:#000,stroke:#4f46e5,stroke-width:2px
+    style AICORE fill:#f3e8ff,color:#000,stroke:#a855f7,stroke-width:2px
+    style ALFRED fill:#fdf2f8,color:#000,stroke:#ec4899,stroke-width:2px
+    style MYSQL fill:#f0fdf4,color:#000,stroke:#16a34a,stroke-width:2px
+    style CACHE fill:#fef3c7,color:#000,stroke:#f59e0b,stroke-width:2px
+    style EMAIL fill:#fce7f3,color:#000,stroke:#ec4899,stroke-width:2px
+    style SOCKETIO fill:#fff7ed,color:#000,stroke:#ea580c,stroke-width:2px
+    style WEB fill:#eef2ff,color:#000,stroke:#6366f1,stroke-width:2px
+    style MOBILE fill:#f5f3ff,color:#000,stroke:#8b5cf6,stroke-width:2px
+    style EXTERNAL fill:#f3f4f6,color:#000,stroke:#6b7280,stroke-width:2px

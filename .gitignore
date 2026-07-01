@@ -9,6 +9,7 @@ MOBILE/.env
 backend/broker_config.json
 backend/gemini_config.json
 backend/config.json
+Arduino/ESP32/esp32_secrets.h
 
 # IDEs
 .vscode/
@@ -57,3 +58,9 @@ logs/
 # Generated
 DIRECTORY_TREE.txt
 ~$*.docx
+Format/*.docx
+backend/*.docx
+MOBILE_APK_Export/
+REPORT/*.docx
+files/*.pdf
+files/*.zip

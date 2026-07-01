@@ -1,0 +1,275 @@
+\chapter{Key Algorithms --- Pseudocode}
+\label{app:algorithms}
+
+This appendix presents pseudocode summaries of the six main firmware and
+backend algorithms. Full source listings are in the project repository;
+the pseudocode below shows control flow only, not implementation detail.
+Algorithms are labelled A1--A6 for cross-reference from Chapter~3.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Firmware Algorithms}
+
+\subsection{Core ESP32 Runtime Loop (A1)}
+
+\begin{lstlisting}[numbers=none,caption={A1: ESP32 firmware runtime loop},label={lst:pseudo_esp32_loop}]
+ALGORITHM ESP32_MAIN_LOOP
+INPUT:  WiFi credentials, MQTT credentials, room_id
+OUTPUT: periodic telemetry, relay status feedback
+
+SETUP:
+  init_gpio_for_relays_and_buttons()
+  init_dht_ldr_pir_sensors()
+  connect_wifi_with_retry()
+  configure_tls_and_connect_mqtt()
+  subscribe("home/control/#")
+
+LOOP EVERY ~100 ms:
+  keep_mqtt_connection_alive()
+
+  IF control_message_received(topic, payload) THEN
+    cmd <- parse_device_command(payload)
+    apply_relay_state(cmd)
+    publish("home/status/<device>", cmd.state)
+  ENDIF
+
+  IF sensor_timer_expired(SENSOR_INTERVAL_SECONDS) THEN
+    reading <- sample_environment()
+    publish("home/sensors/<room_id>",
+            build_sensor_payload(room_id, reading, now()))
+  ENDIF
+ENDLOOP
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Backend Algorithms}
+
+\subsection{MQTT Message Ingestion (A2)}
+
+\begin{lstlisting}[numbers=none,caption={A2: MQTT listener ingestion flow},label={lst:pseudo_mqtt_listener}]
+ALGORITHM HANDLE_MQTT_MESSAGE(topic, payload)
+INPUT:  MQTT topic string, raw JSON payload
+OUTPUT: database write, Socket.IO event, optional health alert
+
+parsed <- safe_parse(payload)
+IF parsed is invalid THEN
+  log_warning_and_return()
+ENDIF
+
+reading <- map_to_sensor_reading_entity(topic, parsed)
+save_sensor_reading(reading)
+emit_socket_event("sensor_update", reading)
+
+IF topic is heart_rate_topic THEN
+  alert <- check_anomaly(user_id=reading.user_id,
+                         bpm=reading.value,
+                         context=latest_context)
+  IF alert exists THEN
+    save_alert(alert)
+    emit_socket_event("hr_alert", alert)
+  ENDIF
+ENDIF
+\end{lstlisting}
+
+\subsection{Isolation Forest Inference (A3)}
+
+\begin{lstlisting}[numbers=none,caption={A3: Isolation Forest inference},label={lst:pseudo_if_inference}]
+ALGORITHM CHECK_ANOMALY(user_id, bpm, context)
+INPUT:  current BPM reading, environmental context
+OUTPUT: optional Alert object
+
+// Anomaly detection: single-feature Isolation Forest (heart rate only)
+features   <- [bpm]
+scaled     <- scaler.transform(features)
+prediction <- model.predict(scaled)           // -1 = outlier, +1 = normal
+score      <- model.decision_function(scaled)
+risk_level <- classify_risk(bpm, score)       // normal | caution | warning | critical
+
+// Mood classification: 7-feature RandomForest (separate model)
+mood_features <- [bpm, context.temp, context.humidity, context.lux,
+                  context.hour, context.is_night, context.is_dark]
+mood_label    <- mood_model.predict(mood_features)
+// Labels: EMERGENCY | ELEVATED | QUIET | SLEEP | REST | ACTIVE | NORMAL
+
+IF prediction == OUTLIER OR risk_level IN {warning, critical} THEN
+  RETURN build_alert(user_id, bpm, score, risk_level, mood_label)
+ELSE
+  emit_socket("hr_update", {bpm, risk_level, mood_label})
+  RETURN null
+ENDIF
+\end{lstlisting}
+
+\subsection{Alfred AI Inference Pipeline (A4)}
+
+\begin{lstlisting}[numbers=none,caption={A4: Alfred AI three-layer inference pipeline},label={lst:pseudo_alfred_flow}]
+ALGORITHM ALFRED_HANDLE_QUERY(user_id, user_text, mode)
+INPUT:  user text, selected mode (rule | llm | gemini)
+OUTPUT: assistant reply, optional pending device confirmation
+
+// Load real-time house state from DB (10 s cache per user)
+house    <- load_realtime_house(user_id)   // {devices, rooms, floors}
+msg_norm <- normalize_diacritics(user_text)
+
+// -- Priority: SOS detection (all modes) --
+IF sos_keyword_in(user_text) THEN
+  create_critical_alert(user_id)
+  send_emergency_email(caretaker_email)
+  RETURN sos_reply()
+ENDIF
+
+// -- Priority: pending action confirmation (all modes) --
+IF pending_action_exists(user_id) THEN
+  IF user_confirms(user_text) THEN
+    execute_pending_plan()
+    RETURN success_reply()
+  ELSE
+    clear_pending(user_id)
+    RETURN cancel_reply()
+  ENDIF
+ENDIF
+
+// ==== LAYER 1: Rule Engine (all modes) ====
+IF device_control_intent(user_text) THEN
+  target_rooms <- match_rooms_by_norm(msg_norm, house.rooms)
+  // Room must match exactly (after diacritic strip); no cross-room fallthrough
+  IF target_rooms is empty AND no_owner_marker(user_id) THEN
+    similar <- fuzzy_find_rooms(house.rooms, msg_norm, cutoff=0.35)
+    RETURN ask_which_room(similar)        // never control blindly
+  ENDIF
+  candidates <- devices_in(target_rooms OR owner_room)
+  matched    <- filter_by_name_or_code(candidates, tokens(user_text))
+  IF matched is not empty THEN
+    store_pending_action(user_id, matched, action)
+    RETURN confirmation_prompt(matched)   // always confirm before executing
+  ENDIF
+ENDIF
+
+// ==== Scenario / Environmental / Mood (all modes) ====
+IF environmental_or_scenario_keyword(user_text) THEN
+  plan <- build_device_plan(scenario, house)
+  store_pending_action(user_id, plan)
+  RETURN confirmation_prompt_with_suggestion(plan)  // always confirm
+ENDIF
+
+IF mood_keyword(user_text) THEN
+  plan <- build_device_plan(mood_profile, house)
+  store_pending_action(user_id, plan, mood=true)
+  RETURN mood_suggestion_reply(plan)
+ENDIF
+
+IF mode == "rule" THEN
+  RETURN not_understood_reply()           // rule-only: no LLM fallback
+ENDIF
+
+// ==== LLM Fallback (llm | gemini) ====
+IF mode == "gemini" THEN
+  RETURN gemini_generate(user_text, house_summary)
+ENDIF
+
+// LLM mode: Ollama parses intent then backend resolves devices
+intent <- ollama_parse_intent(user_text)  // {type, action, room, device_type}
+
+IF intent.type == "control" THEN
+  room_devs <- find_devices_in_room(house, intent.room)
+  IF room_devs is empty THEN
+    similar <- fuzzy_find_rooms(house.rooms, intent.room, cutoff=0.35)
+    RETURN suggest_rooms(similar)         // never fall through to all_devs
+  ENDIF
+  candidates <- filter_by_type(room_devs, intent.device_type)
+  store_pending_action(user_id, candidates, intent.action)
+  RETURN confirmation_prompt(candidates)
+ENDIF
+
+RETURN ollama_chat_reply(user_text, house_summary)
+\end{lstlisting}
+
+\subsection{Authentication Guard (A5)}
+
+The web dashboard receives the signed token as an \texttt{HttpOnly} cookie (\texttt{batman\_os\_auth}, \texttt{SameSite=Strict}); the Flutter mobile client sends the same token as a \texttt{Bearer} header in \texttt{Authorization}, because the Dart HTTP stack has no cookie store.
+The guard logic is identical for both transports --- the decorator extracts the token from whichever source is present.
+
+\begin{lstlisting}[numbers=none,caption={A5: Authentication guard (web: HttpOnly cookie; mobile: Bearer header)},label={lst:pseudo_auth_guard}]
+ALGORITHM AUTH_REQUIRED(request)
+INPUT:  HTTP request (web: cookie batman_os_auth; mobile: Authorization: Bearer <token>)
+OUTPUT: authenticated user context OR HTTP 401/403
+
+token <- extract_bearer_token(request.headers)   # mobile path
+         OR extract_cookie(request, "batman_os_auth")  # web path
+IF token is missing THEN
+  RETURN HTTP_401("Missing token")
+ENDIF
+
+payload <- verify_signed_token(token, secret_key, max_age)
+IF payload is invalid OR expired THEN
+  RETURN HTTP_401("Invalid or expired token")
+ENDIF
+
+user <- find_user_by_id(payload.user_id)
+IF user is null OR user.is_active == false THEN
+  RETURN HTTP_403("Account disabled")
+ENDIF
+
+attach_user_to_request_context(user)
+RETURN NEXT_HANDLER()
+\end{lstlisting}
+
+\subsection{Endpoint Rate-Limiting Guard (A6)}
+
+\begin{lstlisting}[numbers=none,caption={A6: Endpoint rate-limiting guard},label={lst:pseudo_rate_limit}]
+ALGORITHM ENFORCE_RATE_LIMIT(client_key, endpoint_rule)
+INPUT:  client identifier (IP or user ID), limit rule
+OUTPUT: allow request OR HTTP 429
+
+window  <- get_current_time_window(endpoint_rule.window)
+counter <- read_counter(client_key, endpoint_rule.name, window)
+
+IF counter >= endpoint_rule.max_requests THEN
+  retry_after <- seconds_until_next_window(window)
+  RETURN HTTP_429("Too many requests", retry_after)
+ENDIF
+
+increment_counter(client_key, endpoint_rule.name, window)
+RETURN ALLOW
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Alfred Rule Engine --- Full Intent Taxonomy}
+\label{app:alfred_keywords}
+
+The Alfred Rule engine defines 19 named intent groups with approximately 200
+keyword triggers in Vietnamese and English. The full taxonomy is listed
+below. Keywords are matched by case-insensitive substring search;
+the first matching group wins.
+
+\begin{table}[H]
+\centering
+\caption{Alfred Rule engine intent taxonomy --- representative triggers and responses}
+\label{tab:alfred_rule_keywords}
+\small
+\begin{tabularx}{\textwidth}{@{} l l >{\RaggedRight\arraybackslash}X >{\RaggedRight\arraybackslash}p{3.4cm} @{}}
+\toprule
+\textbf{Intent} & \textbf{Layer} & \textbf{Sample triggers (VI / EN)} & \textbf{Device response} \\
+\midrule
+buồn (Sad)         & Mood & buồn, không vui, sad, down, feeling sad, blue        & Lights 35\%, AC 26°C, chill music \\
+vui (Happy)        & Mood & vui, hạnh phúc, happy, great, awesome, cheerful      & Lights 100\%, upbeat music \\
+chán (Bored)       & Mood & chán, nhàm, bored, meh, nothing to do, dull          & TV ON, AC 25°C, movie list \\
+buồn ngủ (Sleepy)  & Mood & buồn ngủ, sleepy, tired, exhausted, falling asleep   & Lights 10\%, AC 27°C, white noise \\
+stress             & Mood & stress, căng thẳng, overwhelmed, burnout             & Lights 40\%, AC 25°C, ambient music \\
+bệnh (Sick)        & Mood & ốm, sốt, sick, fever, không khỏe, đau đầu           & AC 28°C, fan OFF, rest reminders \\
+lãng mạn (Romantic)& Mood & lãng mạn, romantic, date, valentine, cozy           & Lights 20\%, soft music, AC 25°C \\
+tâm sự (Confide)   & Mood & tôi muốn tâm sự, talk to me, listen to me          & Lights 40\%, music OFF, chat mode \\
+\midrule
+Tối (Dark)         & Device & tối, dark, dim, gloomy, too dark                  & Lights ON 75\% \\
+Sáng quá (Too Bright) & Device & sáng quá, chói, too bright, glaring, blinding & Lights ON 30\% \\
+Nóng (Hot)         & Device & nóng, hot, warm, stuffy, feeling hot, boiling      & Fan speed 3, AC 24°C \\
+Lạnh (Cold)        & Device & lạnh, cold, chilly, freezing, buốt                & AC OFF, Fan OFF \\
+Ngủ (Sleep)        & Device & đi ngủ, sleep, nghỉ ngơi                          & Lights OFF, AC 27°C \\
+Làm việc (Work)    & Device & làm việc, study, work, focus, đọc sách            & Lights 80\%, AC 25°C, TV OFF \\
+Xem phim (Movie)   & Device & xem phim, movie, giải trí, watch tv               & TV ON, Lights 15\%, AC 25°C \\
+Tập thể dục (Gym)  & Device & tập thể dục, gym, exercise, workout                & Lights 100\%, Fan max, AC 22°C \\
+Sáng sớm (Morning) & Device & ngủ dậy, good morning, dậy rồi, mới dậy          & Lights 60\%, AC OFF \\
+Rời nhà (Leaving)  & Device & ra ngoài, đi làm, tắt hết, rời nhà               & All devices OFF \\
+Về nhà (Arriving)  & Device & về nhà, tôi về, arrived, đã về                    & Lights 70\%, AC 26°C \\
+\bottomrule
+\end{tabularx}
+\end{table}
+

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Smart Home Architecture</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+        });
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #f0f2f5; }
+        .container { background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); max-width: 95%; }
+        h2 { color: #1a73e8; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <h2>Architecture: Context-Aware Smart Home System</h2>
+
+    <div class="container">
+        <pre class="mermaid">
+flowchart TD
+    U["User message"] --> API["POST /api/ai/chat"]
+    API --> HC["AIUseCase.handle_chat"]
+
+    %% NEW: DB context retrieval (Data Enrichment Layer)
+    subgraph Context_Layer [Context Retrieval Layer]
+        HC --> CTX["Load realtime house context"]
+        CTX --> DBR[("Read DB: devices, status, rooms, floors, user scope")]
+        DBR --> CACHE["Optional cache (Redis/TTL)"]
+    end
+
+    %% Decision after context
+    CACHE --> R{"Rule matched with context?"}
+
+    %% PATH 1: Device control (Operational Path)
+    subgraph IoT_Control_Path [IoT Operational Path]
+        R -->|Yes| PLAN["Create action plan"]
+        PLAN --> EXE["_execute_plan"]
+        EXE --> CTRL["device_usecase.control_device"]
+        CTRL --> CMD["send_command"]
+        CMD --> MQTT_PUB["Publish home/control/&lt;device_code&gt;"]
+    end
+
+    MQTT_PUB --> ESP["ESP32 executes"]
+    ESP --> ST_PUB["Publish home/status/&lt;device_code&gt;"]
+    ST_PUB --> LISTENER["Backend MQTT listener"]
+    
+    LISTENER --> DBW[("Write status/log to DB")]
+    LISTENER --> EMIT["Socket.IO emit device_status"]
+    EMIT --> UI["Web + Mobile sync"]
+
+    %% PATH 2: Conversational response (AI Path)
+    subgraph AI_Conversational_Path [AI Logic Path]
+        R -->|No| MODE{"AI mode"}
+        MODE -->|auto/llm| OLLAMA["Local LLM Ollama"]
+        OLLAMA -->|success| RESP["Text response"]
+        OLLAMA -->|fail/timeout| GEMINI["Cloud Gemini fallback"]
+        MODE -->|gemini| GEMINI
+        MODE -->|rule-only| RULE_RESP["Rule text response"]
+        RULE_RESP --> RESP
+        GEMINI --> RESP
+    end
+
+    RESP --> UI
+
+    %% Styling for Academic Presentation
+    style R fill:#f9f,stroke:#333,stroke-width:2px
+    style MODE fill:#f9f,stroke:#333,stroke-width:2px
+    style Context_Layer fill:#e3f2fd,stroke:#1565c0,stroke-dasharray: 5 5
+    style ESP fill:#fff176,stroke:#333,stroke-width:2px
+    style UI fill:#b3e5fc,stroke:#333,stroke-width:2px
+    style MQTT_PUB fill:#c8e6c9,stroke:#333
+    style ST_PUB fill:#ffccbc,stroke:#333
+        </pre>
+    </div>
+
+</body>
+</html>

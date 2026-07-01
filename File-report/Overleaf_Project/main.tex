@@ -1,0 +1,200 @@
+\documentclass[a4paper,12pt]{report}
+\setcounter{tocdepth}{2}
+\PassOptionsToPackage{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue,unicode}{hyperref}
+\usepackage{geometry}
+\geometry{
+  a4paper,
+  left=30mm,
+  top=25mm,
+  bottom=20mm,
+  right=20mm
+}
+\usepackage{authblk}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[toc]{appendix}
+\usepackage{graphicx}
+\usepackage{mathtools}
+\usepackage[labelfont=bf]{caption}
+% ── Unicode font setup (XeLaTeX) ──────────────────────────────
+% Switched from [T1,T5]{fontenc}+inputenc to fontspec so that
+% Vietnamese glyphs work everywhere (incl. bold table headers),
+% removing the "\ocircumflex unavailable in encoding T1" errors.
+\usepackage{fontspec}
+\setmainfont{Latin Modern Roman}
+\setsansfont{Latin Modern Sans}
+% Latin Modern Mono (lmmono10) ships no bold face; map the bold/italic
+% slots explicitly to available LM Mono files so bold \texttt works and
+% the "Font shape .../b/n undefined" warning disappears.
+\setmonofont{lmmono10-regular.otf}[
+  Scale=MatchLowercase,
+  ItalicFont=lmmono10-italic.otf,
+  BoldFont=lmmonolt10-bold.otf,
+  BoldItalicFont=lmmonolt10-boldoblique.otf
+]
+\usepackage[vietnamese,english]{babel}
+\usepackage{csquotes}
+\usepackage{float}
+\usepackage{makecell}
+\usepackage{multicol}
+\usepackage{ragged2e}
+\usepackage{adjustbox}
+\usepackage{lscape}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{placeins}
+\usepackage{tocloft}
+% ── Tighten the vertical space around front-matter \chapter* headings ──
+% In the `report` class, \chapter* (used by TABLE OF CONTENTS, LIST OF
+% FIGURES/TABLES, LIST OF ABBREVIATIONS, ABSTRACT and REFERENCES) inserts
+% ~50pt above the title and ~40pt below it. That large gap, plus the
+% inter-entry spacing, pushed the last few list lines onto an almost-empty
+% extra page. Reducing it lets those overflow lines fall back onto the
+% previous page. Numbered content chapters (\@makechapterhead) are left
+% untouched, so chapter openings keep their original look.
+\makeatletter
+\renewcommand{\@makeschapterhead}[1]{%
+  \vspace*{10\p@}%
+  {\parindent \z@ \raggedright \normalfont
+   \interlinepenalty\@M
+   \Huge \bfseries #1\par\nobreak
+   \vskip 18\p@}}
+\makeatother
+\renewcommand{\cftfigfont}{\small}
+\renewcommand{\cftfigpagefont}{\small}
+\renewcommand{\cfttabfont}{\small}
+\renewcommand{\cfttabpagefont}{\small}
+\setlength{\cftbeforefigskip}{0pt}
+\setlength{\cftbeforetabskip}{0pt}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds, calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{listings}
+\usepackage{microtype}   % reduces overfull hboxes via character protrusion & font expansion
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{pifont}
+\usepackage[style=ieee,backend=biber,doi=true,url=true,isbn=false]{biblatex}
+% Fix: biblatex >=3.19 renamed the volume+number bibmacro; biblatex-ieee
+% still references the old name and emits a harmless warning. Define a
+% no-op fallback so the warning disappears without changing output.
+\AtEndPreamble{%
+  \ifundef{\abx@macro@volume+number}%
+    {\newbibmacro*{volume+number}{}}%
+    {}%
+}
+\DeclareLanguageMapping{vietnamese}{english}
+\addbibresource{reference.bib}
+\usepackage{xurl}
+\usepackage{hyphenat}
+\usepackage{hyperref}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+% Bullet list for table cells: no extra vertical space, proper hanging indent
+\newlist{tblitem}{itemize}{1}
+\setlist[tblitem]{label=\textbullet, nosep, leftmargin=1.1em, itemsep=0pt, topsep=0pt, partopsep=0pt, parsep=0pt}
+\newcommand{\thesisimage}[4]{%
+  \begin{figure}[H]
+    \centering
+    \IfFileExists{images/#1}{%
+      \includegraphics[width=#2\textwidth]{images/#1}%
+    }{%
+      \fbox{\parbox[c][0.26\textheight][c]{0.9\textwidth}{\centering
+      Placeholder: images/#1\\[4pt]
+      (Create this PNG and place it under File-report/Overleaf\_Project/images)}}%
+    }
+    \caption{#3}
+    \label{#4}
+  \end{figure}
+}
+
+% ── Fix: allow line breaks in \texttt inside List of Figures ──
+\usepackage{etoolbox}
+\AtBeginEnvironment{figure}{%
+  \captionsetup{font=small}%
+}
+
+% ── Code listing style ────────────────────────────────────────
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{codegreen}{RGB}{0,128,0}
+\definecolor{codegray}{RGB}{128,128,128}
+\definecolor{codeblue}{RGB}{0,0,200}
+\lstdefinestyle{mystyle}{
+  backgroundcolor=\color{codebg},
+  commentstyle=\color{codegreen},
+  keywordstyle=\color{codeblue}\bfseries,
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{orange},
+  basicstyle=\ttfamily\footnotesize,
+  breakatwhitespace=false,
+  breaklines=true,
+  captionpos=b,
+  keepspaces=true,
+  numbers=left,
+  numbersep=5pt,
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  tabsize=2,
+  frame=single,
+  rulecolor=\color{gray!40},
+  extendedchars=true,
+  inputencoding=utf8
+}
+\lstset{style=mystyle}
+% XeLaTeX supports character protrusion (not expansion); protrusion still
+% helps reduce overfull \hbox warnings on long technical tokens.
+\microtypesetup{protrusion=true,expansion=false}
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+% Set these AFTER babel runs, otherwise babel resets them to the English
+% defaults ("Contents", "List of Figures", ...) at \begin{document}.
+\AtBeginDocument{%
+  \renewcommand{\contentsname}{TABLE OF CONTENTS}%
+  \renewcommand{\listfigurename}{LIST OF FIGURES}%
+  \renewcommand{\listtablename}{LIST OF TABLES}%
+}
+% Give LaTeX more flexibility for long technical tokens/paths in narrow lines.
+\setlength{\emergencystretch}{6em}
+\pretolerance=1000
+\tolerance=2000
+\Urlmuskip=0mu plus 1mu\relax
+% Allow natural white space at the bottom of pages instead of stretching
+% inter-paragraph glue; removes spurious "Overfull \vbox ... while \output
+% is active" warnings around [H] floats, landscape pages and list pages.
+\raggedbottom
+\begin{document}
+\input{before_main/title}
+\input{before_main/approval}
+\input{before_main/acknowledge}
+\clearpage
+\tableofcontents{}
+\clearpage
+{\renewcommand{\addvspace}[1]{\vspace{2pt}}\listoffigures}
+\addcontentsline{toc}{chapter}{LIST OF FIGURES}
+\clearpage
+{\renewcommand{\addvspace}[1]{\vspace{2pt}}\listoftables}
+\addcontentsline{toc}{chapter}{LIST OF TABLES}
+\clearpage
+\input{before_main/abbreviations}
+\clearpage
+\input{before_main/abstract}
+\clearpage
+\input{tex/intro}
+\input{tex/literature}
+\input{tex/method}
+\input{tex/result}
+\input{tex/discussion}
+\input{tex/conclusion}
+\printbibliography[title={REFERENCES}]
+\addcontentsline{toc}{chapter}{REFERENCES}
+\begin{appendices}
+  \input{tex/appendix/appendix1}
+  \input{tex/appendix/appendix2}
+\end{appendices}
+\end{document}

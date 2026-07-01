@@ -24,9 +24,9 @@ from app.wiring import container
 
 class _NullMqtt:
     def publish(self, *a, **kw):
-        return None
+        return True
     def send_device_command(self, *a, **kw):
-        return None
+        return True
 
 
 class _NullRealtime:
@@ -189,6 +189,26 @@ def test_create_device(client):
     assert r.get_json()["success"] is True
 
 
+def test_create_device_with_alias_fields(client):
+    token = _auth_token(client)
+    r = client.post(
+        "/api/devices",
+        json={
+            "device_name": "Humidity A1",
+            "device_id": "humidity_a1",
+            "device_type": "humidity",
+            "location": 1,
+            "metadata": {"unit": "%"},
+        },
+        headers=_bearer(token),
+    )
+    assert r.status_code == 201
+    body = r.get_json()
+    assert body["success"] is True
+    assert body["code"] == "humidity_a1"
+    assert body["type"] == "humidity"
+
+
 def test_create_device_missing_name(client):
     token = _auth_token(client)
     r = client.post("/api/devices", json={"code": "NO_NAME"}, headers=_bearer(token))
@@ -263,6 +283,77 @@ def test_control_device_on_off(client):
         headers=_bearer(token),
     )
     assert r_off.status_code == 200
+
+
+def test_control_device_by_code(client):
+    token = _auth_token(client)
+    client.post(
+        "/api/devices",
+        json={"name": "Kitchen Light", "code": "kitchen_light", "type": "light"},
+        headers=_bearer(token),
+    )
+
+    r = client.post(
+        "/api/devices/control",
+        json={"device_code": "kitchen_light", "action": "ON"},
+        headers=_bearer(token),
+    )
+    assert r.status_code == 200
+    assert r.get_json()["success"] is True
+
+
+def test_device_schema_endpoint(client):
+    token = _auth_token(client)
+    r = client.get("/api/devices/schema", headers=_bearer(token))
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body["success"] is True
+    assert "aliases" in body["data"]
+    assert "mqtt_topic_templates" in body["data"]
+
+
+def test_device_detail_v2_for_sensor(client):
+    token = _auth_token(client)
+    client.post(
+        "/api/devices",
+        json={
+            "device_name": "Humidity A1",
+            "device_id": "humidity_a1",
+            "device_type": "humidity",
+            "category": "sensor",
+            "metadata": {"unit": "%"},
+        },
+        headers=_bearer(token),
+    )
+
+    r = client.get("/api/devices/sensors/humidity/humidity_a1", headers=_bearer(token))
+    assert r.status_code == 200
+    body = r.get_json()["data"]
+    assert body["code"] == "humidity_a1"
+    assert body["device_type"] == "humidity"
+    assert body["metadata"]["unit"] == "%"
+
+
+def test_control_device_v2_for_actuator(client):
+    token = _auth_token(client)
+    client.post(
+        "/api/devices",
+        json={
+            "device_name": "Living Room Light",
+            "device_id": "living_room_light",
+            "device_type": "light",
+            "category": "light",
+        },
+        headers=_bearer(token),
+    )
+
+    r = client.post(
+        "/api/devices/actuators/light/living_room_light/control",
+        json={"action": "ON"},
+        headers=_bearer(token),
+    )
+    assert r.status_code == 200
+    assert r.get_json()["success"] is True
 
 
 def test_control_nonexistent_device(client):

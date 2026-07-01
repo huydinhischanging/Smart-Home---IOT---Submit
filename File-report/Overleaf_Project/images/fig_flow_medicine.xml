@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="0" gridSize="10" guides="1" tooltips="1"
+              connect="1" arrows="1" fold="1" page="0" pageScale="1"
+              pageWidth="1200" pageHeight="1380" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- ===== MEDICINE REMINDER LIFECYCLE ===== -->
+    <!-- Canvas 1200 px wide, fontSize=20 body / 22 title -->
+    <!-- At width=\textwidth (160 mm): 20 × (160/1200) = 2.67 mm ≈ 7.5 pt -->
+
+    <!-- START -->
+    <mxCell id="n1" value="APScheduler tick (every 1 min)&#xa;dispatch_due_reminders(now)"
+      style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=22;"
+      vertex="1" parent="1">
+      <mxGeometry x="250" y="25" width="700" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Query DB -->
+    <mxCell id="n2" value="Query medicine_reminders&#xa;WHERE is_active = True  AND  time_of_day IN {now − 1 min, now, now + 1 min}"
+      style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#555555;fontSize=20;"
+      vertex="1" parent="1">
+      <mxGeometry x="250" y="145" width="700" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="e12" value="" style="endArrow=block;endFill=1;html=1;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="600" y="95" as="sourcePoint" />
+        <mxPoint x="600" y="145" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Diamond: any due? -->
+    <mxCell id="d1" value="Any reminders due?"
+      style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=20;"
+      vertex="1" parent="1">
+      <mxGeometry x="350" y="278" width="500" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="e23" value="" style="endArrow=block;endFill=1;html=1;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="600" y="225" as="sourcePoint" />
+        <mxPoint x="600" y="278" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- No → return -->
+    <mxCell id="ret0" value="Return 0&#xa;(no action)"
+      style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=18;"
+      vertex="1" parent="1">
+      <mxGeometry x="930" y="293" width="210" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="e_d1_no" value="No" style="endArrow=block;endFill=1;html=1;fontSize=18;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="850" y="323" as="sourcePoint" />
+        <mxPoint x="930" y="323" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Diamond: skip? -->
+    <mxCell id="d2" value="last_sent_on == today?&#xa;OR recurrence mismatch?"
+      style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=20;"
+      vertex="1" parent="1">
+      <mxGeometry x="350" y="423" width="500" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="e_d1_yes" value="Yes" style="endArrow=block;endFill=1;html=1;fontSize=18;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="600" y="368" as="sourcePoint" />
+        <mxPoint x="600" y="423" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- Yes → skip -->
+    <mxCell id="e_d2_yes" value="Yes — skip" style="endArrow=open;html=1;fontSize=17;dashed=1;strokeColor=#aaaaaa;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="850" y="468" as="sourcePoint" />
+        <mxPoint x="970" y="468" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- email_notifier.send_message() -->
+    <mxCell id="n5" value="email_notifier.send_message()  →  SMTP / Brevo&#xa;(optional — skipped if no recipient configured)"
+      style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=20;"
+      vertex="1" parent="1">
+      <mxGeometry x="250" y="570" width="700" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="e_d2_no" value="No" style="endArrow=block;endFill=1;html=1;fontSize=18;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="600" y="513" as="sourcePoint" />
+        <mxPoint x="600" y="570" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- alert_usecase.create_alert + Socket.IO -->
+    <mxCell id="n6" value="alert_usecase.create_alert(device_code=MEDICINE, level=warning, user_id)&#xa;  →  INSERT alerts&#xa;  →  realtime.notify_alert()  →  Socket.IO &quot;alert&quot;  →  user room"
+      style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=20;"
+      vertex="1" parent="1">
+      <mxGeometry x="250" y="703" width="700" height="105" as="geometry" />
+    </mxCell>
+    <mxCell id="e56" value="" style="endArrow=block;endFill=1;html=1;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="600" y="650" as="sourcePoint" />
+        <mxPoint x="600" y="703" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- UPDATE last_sent_on -->
+    <mxCell id="n7" value="reminder.last_sent_on = today    db.session.commit()"
+      style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#555555;fontSize=20;"
+      vertex="1" parent="1">
+      <mxGeometry x="250" y="862" width="700" height="55" as="geometry" />
+    </mxCell>
+    <mxCell id="e67" value="" style="endArrow=block;endFill=1;html=1;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="600" y="808" as="sourcePoint" />
+        <mxPoint x="600" y="862" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Web/Mobile receives alert -->
+    <mxCell id="n8" value="Web / Mobile receives Socket.IO &quot;alert&quot; event&#xa;→ shows medicine reminder notification"
+      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=20;"
+      vertex="1" parent="1">
+      <mxGeometry x="250" y="972" width="700" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="e78" value="" style="endArrow=block;endFill=1;html=1;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="600" y="917" as="sourcePoint" />
+        <mxPoint x="600" y="972" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Caregiver TAKEN -->
+    <mxCell id="n9" value="Caregiver taps TAKEN  →  POST /api/care/reminders/{id}/taken"
+      style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#555555;fontSize=20;"
+      vertex="1" parent="1">
+      <mxGeometry x="250" y="1107" width="700" height="55" as="geometry" />
+    </mxCell>
+    <mxCell id="e89" value="" style="endArrow=block;endFill=1;html=1;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="600" y="1052" as="sourcePoint" />
+        <mxPoint x="600" y="1107" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- set_taken -->
+    <mxCell id="n10" value="set_taken()  →  UPDATE last_taken_on = today"
+      style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#555555;fontSize=20;"
+      vertex="1" parent="1">
+      <mxGeometry x="250" y="1217" width="700" height="55" as="geometry" />
+    </mxCell>
+    <mxCell id="e910" value="" style="endArrow=block;endFill=1;html=1;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="600" y="1162" as="sourcePoint" />
+        <mxPoint x="600" y="1217" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- END -->
+    <mxCell id="nend" value="Medication adherence recorded"
+      style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=22;"
+      vertex="1" parent="1">
+      <mxGeometry x="300" y="1330" width="600" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="e10end" value="" style="endArrow=block;endFill=1;html=1;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="600" y="1272" as="sourcePoint" />
+        <mxPoint x="600" y="1330" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+  </root>
+</mxGraphModel>

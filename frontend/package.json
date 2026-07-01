@@ -1,0 +1,24 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "node --import ./test/setup.js --test ./test/alert.store.test.js ./test/alert_controller.test.js ./test/api_client.test.js ./test/auth.store.test.js ./test/auth_storage.test.js ./test/device.store.test.js ./test/notification_manager.test.js ./test/report_email_ui.dom.test.js ./test/report_email_ui.test.js ./test/ui.store.test.js",
+    "test:vitest": "vitest run",
+    "test:all": "npm test && npm run test:vitest",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "vite": "^7.2.4",
+    "vitest": "^2.1.9"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.3",
+    "three": "^0.182.0",
+    "winbox": "^0.2.82"
+  }
+}

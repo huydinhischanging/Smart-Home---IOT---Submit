@@ -146,6 +146,54 @@ def test_create_device_auto_suffix_code():
     assert result["code"] == "den_2"
 
 
+def test_create_device_accepts_scalable_aliases():
+    uc, repo, status_repo, log_repo, mqtt, realtime = _make_usecase()
+    repo.exists_by_name.return_value = False
+    repo.exists_by_code.return_value = False
+    created = _make_device(id=8, name="Do am phong ngu", code="do_am_a1")
+    repo.create.return_value = created
+
+    with patch("app.usecases.device_usecase.db"):
+        result = uc.create_device(
+            {
+                "device_name": "Do am phong ngu",
+                "device_id": "do_am_a1",
+                "device_type": "humidity",
+                "location": "2",
+                "metadata": {"unit": "%"},
+            },
+            user_id=1,
+        )
+
+    assert result["success"] is True
+    assert result["name"] == "Do am phong ngu"
+    assert result["code"] == "do_am_a1"
+    assert result["category"] == "sensor"
+    assert result["type"] == "humidity"
+    assert result["room_id"] == 2
+
+
+def test_create_device_infers_actuator_category_from_type():
+    uc, repo, status_repo, log_repo, mqtt, realtime = _make_usecase()
+    repo.exists_by_name.return_value = False
+    repo.exists_by_code.return_value = False
+    created = _make_device(id=9, name="Relay quat", code="relay_fan_1")
+    repo.create.return_value = created
+
+    with patch("app.usecases.device_usecase.db"):
+        result = uc.create_device(
+            {
+                "name": "Relay quat",
+                "code": "relay_fan_1",
+                "type": "relay",
+            },
+            user_id=1,
+        )
+
+    assert result["success"] is True
+    assert result["category"] == "actuator"
+
+
 # ──────────────────────────────────────────────
 # delete_device
 # ──────────────────────────────────────────────

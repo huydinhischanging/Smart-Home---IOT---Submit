@@ -1,0 +1,104 @@
+\chapter{Evaluation Metrics}
+\label{app:ml_metrics}
+
+This appendix defines the binary-classification metrics used to evaluate the Isolation Forest model in Chapter 5. For each formula, TP, FP, FN and TN represent the four cells of the confusion matrix (Table~\ref{tab:confusion}): True Positive, False Positive, False
+Negative, and True Negative respectively.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Confusion Matrix Cells}
+
+Given a binary classifier that labels each sample as either
+\textit{Anomaly} (positive class) or \textit{Normal} (negative class),
+the four symbols used throughout Chapter~5 are defined in
+Table~\ref{tab:cm_defs}:
+
+\begin{table}[H]
+\centering
+\caption{Confusion matrix cell definitions}
+\label{tab:cm_defs}
+\small
+\begin{tabular}{llp{8.5cm}}
+\toprule
+\textbf{Symbol} & \textbf{Name} & \textbf{Definition} \\
+\midrule
+TP & True Positive  & Anomaly sample correctly predicted as Anomaly \\
+FP & False Positive & Normal sample incorrectly predicted as Anomaly \\
+FN & False Negative & Anomaly sample incorrectly predicted as Normal \\
+TN & True Negative  & Normal sample correctly predicted as Normal \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Classification Metrics}
+
+\subsection*{Precision}
+
+Precision measures what fraction of the samples predicted as anomalous
+are actually anomalous. High precision means few false alarms.
+
+\begin{equation}
+\label{eq:precision}
+  \text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}
+\end{equation}
+
+\textit{From the confusion matrix (Table~\ref{tab:confusion}, benchmark HR-only model):} Anomaly precision $\approx 367/(367+14) \approx 0.96$.
+
+\subsection*{Recall (Sensitivity)}
+
+Recall measures the fraction of all true anomalies recovered. In a health-monitoring context, a missed cardiac event (false negative) carries more risk than a spurious alert, making recall the more safety-sensitive of the two metrics.
+
+\begin{equation}
+\label{eq:recall}
+  \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}
+\end{equation}
+
+\textit{From the confusion matrix (Table~\ref{tab:confusion}, benchmark HR-only model):} Anomaly recall $\approx 367/(367+159) \approx 0.70$.
+
+\subsection*{F1-Score}
+
+F1 is the harmonic mean of precision and recall, and is the standard summary metric when the class distribution is skewed --- here, 100 healthy vs.\ 526 diseased samples in the UCI held-out test set.
+
+\begin{equation}
+\label{eq:f1}
+  \text{F1} = 2 \cdot \frac{\text{Precision} \times \text{Recall}}
+                             {\text{Precision} + \text{Recall}}
+            = \frac{2\,\text{TP}}{2\,\text{TP} + \text{FP} + \text{FN}}
+\end{equation}
+
+\textit{From the confusion matrix (Table~\ref{tab:confusion}, benchmark HR-only model):} Anomaly F1 $= 2 \times 0.96 \times 0.70 /
+(0.96 + 0.70) \approx 0.81$.
+
+\subsection*{Weighted Average}
+
+The weighted average reported in Table~\ref{tab:ml_eval} computes each metric as the
+support-weighted mean across both classes:
+
+\begin{equation}
+\label{eq:weighted_avg}
+  M_{\text{weighted}} =
+    \frac{n_{\text{Normal}} \cdot M_{\text{Normal}}
+        + n_{\text{Anomaly}} \cdot M_{\text{Anomaly}}}
+         {n_{\text{Normal}} + n_{\text{Anomaly}}}
+\end{equation}
+
+where $M$ is the metric of interest (Precision, Recall, or F1) and
+$n_c$ is the support (number of samples) for class $c$.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Contamination Hyperparameter}
+
+The \texttt{contamination} parameter $\rho \in (0, 0.5)$ passed to
+scikit-learn's \texttt{IsolationForest} sets the decision threshold
+$\tau$ as the $\rho$-th percentile of anomaly scores on the training
+set~\cite{Pedregosa2011}:
+
+\begin{equation}
+\label{eq:contamination}
+  \tau = \text{Percentile}_{\rho}
+         \bigl(\{\,s_i \mid x_i \in X_{\text{train}}\,\}\bigr)
+\end{equation}
+
+Given a sample $x$, its score is $s = \texttt{decision\_function}(x)$. If $s < \tau$, then $x$ is classified as an anomaly. Increasing $\rho$ lowers $\tau$, which increases recall at the cost of more false positives. The production value $\rho = 0.020$ (2\%) is chosen via grid search on the combined UCI and synthetic training data (Section~\ref{sec:anomaly_design}), prioritising a low false-positive rate for continuous home monitoring. It is independent of the UCI held-out benchmark (Section~\ref{sec:ml_validation}), which uses a separate configuration ($\rho = 0.10$, $n_{\text{estimators}} = 200$).
+
+

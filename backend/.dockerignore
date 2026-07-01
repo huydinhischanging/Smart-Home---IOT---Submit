@@ -1,0 +1,55 @@
+# .dockerignore — backend/
+# Không đưa các file không cần thiết vào Docker image
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Development secrets
+.env
+*.env
+*.env.local
+esp32_secrets.h
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+test_results/
+
+# Build tools
+*.sln
+*.suo
+.vs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docs (not needed at runtime)
+*.md
+DIRECTORY_TREE.txt

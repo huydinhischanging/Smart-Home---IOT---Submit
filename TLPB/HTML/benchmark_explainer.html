@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>benchmark_latency.py — Interactive Explainer</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  background: #faf9f5;
+  color: #2c2c2a;
+  line-height: 1.6;
+}
+h1 { font-size: 24px; font-weight: 500; margin: 0 0 0.5rem; }
+.subtitle { color: #6b6b66; font-size: 14px; margin: 0 0 2rem; }
+.progress { font-size: 13px; color: #6b6b66; text-align: right; margin-bottom: 8px; }
+.hint {
+  background: #fef9e7;
+  border-left: 3px solid #ba7517;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 1rem;
+  color: #633806;
+}
+.code-container {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  background: #f1efe8;
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+.code-block {
+  display: block;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+  white-space: pre;
+  margin-bottom: 4px;
+}
+.code-block:hover { background: #ffffff; border-left-color: #b4b2a9; }
+.code-block.active { background: #ffffff; border-left-color: #185fa5; }
+.code-block.visited::before {
+  content: "\2713 ";
+  color: #1d9e75;
+  font-weight: bold;
+  font-family: -apple-system, sans-serif;
+}
+.code-label {
+  display: inline-block;
+  font-family: -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #185fa5;
+  background: #e6f1fb;
+  padding: 3px 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+.kw  { color: #c04828; }
+.str { color: #1d9e75; }
+.num { color: #185fa5; }
+.com { color: #888780; font-style: italic; }
+.fn  { color: #534ab7; }
+.explanation {
+  background: #ffffff;
+  border: 1px solid #e5e3da;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  min-height: 200px;
+}
+.exp-empty {
+  color: #888780;
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 14px;
+}
+.exp-title { font-size: 17px; font-weight: 500; margin: 0 0 14px; color: #2c2c2a; }
+.exp-body { font-size: 14px; line-height: 1.75; }
+.exp-body p { margin: 0 0 12px; }
+.exp-body code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  background: #f1efe8;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.exp-body strong { font-weight: 500; color: #2c2c2a; }
+.quiz {
+  background: #e6f1fb;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-top: 16px;
+}
+.quiz-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #185fa5;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.quiz-q { font-size: 13px; color: #042c53; margin-bottom: 12px; }
+.quiz-toggle {
+  background: #185fa5;
+  color: #fff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+.quiz-toggle:hover { background: #0c447c; }
+.quiz-answer {
+  display: none;
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #2c2c2a;
+  border-left: 3px solid #1d9e75;
+  line-height: 1.7;
+}
+.quiz-answer.show { display: block; }
+.quiz-answer strong { color: #0f6e56; }
+.nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+.nav button {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #d3d1c7;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.nav button:hover:not(:disabled) { background: #f1efe8; }
+.nav button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+@media (prefers-color-scheme: dark) {
+  body { background: #1a1a18; color: #e8e6dc; }
+  .subtitle, .progress { color: #b4b2a9; }
+  .hint { background: #2a1f0a; color: #fac775; border-left-color: #ba7517; }
+  .code-container { background: #2c2c2a; }
+  .code-block:hover, .code-block.active { background: #3d3d3a; }
+  .com { color: #888780; }
+  .kw  { color: #f0997b; }
+  .str { color: #97c459; }
+  .num { color: #85b7eb; }
+  .fn  { color: #afa9ec; }
+  .explanation { background: #2c2c2a; border-color: #444441; }
+  .exp-title, .exp-body strong { color: #e8e6dc; }
+  .exp-body code { background: #1a1a18; }
+  .code-label { background: #042c53; color: #b5d4f4; }
+  .quiz { background: #042c53; }
+  .quiz-q { color: #b5d4f4; }
+  .quiz-answer { background: #1a1a18; color: #e8e6dc; border-left-color: #1d9e75; }
+  .quiz-answer strong { color: #5dcaa5; }
+  .nav button { background: #2c2c2a; border-color: #444441; color: #e8e6dc; }
+  .nav button:hover:not(:disabled) { background: #3d3d3a; }
+}
+</style>
+</head>
+<body>
+
+<h1>benchmark_latency.py</h1>
+<p class="subtitle">Interactive code walkthrough &middot; IoT Smart Home Elderly Monitor &middot; BME11 / ICIT 2026</p>
+
+<div class="hint">
+  Tip: click any code block below (1 to 8) to see its explanation. Each section ends with a quiz question &mdash; try answering it yourself, then click "Show answer" to check.
+</div>
+
+<div class="progress">Progress: <span id="count">0</span> / 8 sections</div>
+
+<div class="code-container">
+<span class="code-block" data-id="1"><span class="com"># Standalone constants (no Flask import)</span>
+_AI_DIR     = os.path.join(BASE_DIR, <span class="str">"app"</span>, <span class="str">"ai"</span>)
+MODELS_PATH = os.path.join(_AI_DIR, <span class="str">"models"</span>)
+FEATURE_COLUMNS = [<span class="str">"heart_rate"</span>, <span class="str">"room_temp"</span>, <span class="str">"humidity"</span>,
+                   <span class="str">"light_level"</span>, <span class="str">"hour"</span>, <span class="str">"is_night"</span>, <span class="str">"is_dark"</span>]</span>
+
+<span class="code-block" data-id="2"><span class="kw">def</span> <span class="fn">_stats_row</span>(label, times_us):
+    m   = statistics.mean(times_us)
+    sd  = statistics.stdev(times_us) <span class="kw">if</span> len(times_us) &gt; <span class="num">1</span> <span class="kw">else</span> <span class="num">0</span>
+    p95 = np.percentile(times_us, <span class="num">95</span>)
+    p99 = np.percentile(times_us, <span class="num">99</span>)
+    mx  = max(times_us)
+    print(f<span class="str">"  {label}  mean={m:.1f} us  std={sd}..."</span>)</span>
+
+<span class="code-block" data-id="3"><span class="com"># Load models (optional - benchmark also runs without them)</span>
+<span class="kw">def</span> <span class="fn">_load</span>(name):
+    path = os.path.join(MODELS_PATH, f<span class="str">"{name}.pkl"</span>)
+    <span class="kw">return</span> joblib.load(path) <span class="kw">if</span> os.path.exists(path) <span class="kw">else</span> <span class="kw">None</span>
+
+scaler        = _load(<span class="str">"scaler"</span>)
+anomaly_model = _load(<span class="str">"anomaly_model"</span>)
+mood_model    = _load(<span class="str">"mood_model"</span>)
+has_ml = scaler <span class="kw">is not</span> <span class="kw">None</span> <span class="kw">and</span> anomaly_model <span class="kw">is not</span> <span class="kw">None</span> ...</span>
+
+<span class="code-block" data-id="4"><span class="com"># Synthetic BPM stream is used for repeatable benchmark conditions.</span>
+rng = np.random.default_rng(<span class="num">42</span>)
+bpm_stream = rng.integers(<span class="num">40</span>, <span class="num">160</span>, n_iterations).tolist()
+
+<span class="com"># Pre-warm HRV window</span>
+hrv_analyzer = HRVAnalyzer(window_size=<span class="num">60</span>)
+<span class="kw">for</span> bpm <span class="kw">in</span> bpm_stream[:<span class="num">60</span>]:
+    hrv_analyzer.add_bpm(bpm)</span>
+
+<span class="code-block" data-id="5"><span class="com"># T1: Rule-based threshold</span>
+t1_s = time.perf_counter()
+risk = <span class="str">"normal"</span>
+<span class="kw">if</span>   bpm &gt;= <span class="num">130</span>: risk = <span class="str">"emergency"</span>
+<span class="kw">elif</span> bpm &gt;= <span class="num">100</span>: risk = <span class="str">"warning_high"</span>
+<span class="kw">elif</span> bpm &lt;  <span class="num">50</span>:  risk = <span class="str">"warning_low"</span>
+t1_e = time.perf_counter()
+t1_times.append((t1_e - t1_s) * <span class="num">1_000_000</span>)</span>
+
+<span class="code-block" data-id="6"><span class="com"># T2: HRV computation</span>
+t2_s = time.perf_counter()
+hrv_analyzer.add_bpm(bpm)
+_hrv = hrv_analyzer.compute()
+t2_e = time.perf_counter()
+t2_times.append((t2_e - t2_s) * <span class="num">1_000_000</span>)</span>
+
+<span class="code-block" data-id="7"><span class="com"># T3a: ML inference via pandas DataFrame</span>
+t3_s = time.perf_counter()
+<span class="kw">if</span> has_ml:
+    hour     = _t.localtime().tm_hour
+    is_night = <span class="num">1</span> <span class="kw">if</span> hour &lt; <span class="num">6</span> <span class="kw">or</span> hour &gt;= <span class="num">22</span> <span class="kw">else</span> <span class="num">0</span>
+    x_df = pd.DataFrame([[float(bpm), <span class="num">24.0</span>, <span class="num">50.0</span>, ...]],
+                        columns=FEATURE_COLUMNS)
+    x_scaled = scaler.transform(x_df)
+    _is_anomaly = anomaly_model.predict(x_scaled)[<span class="num">0</span>] == -<span class="num">1</span>
+    _mood       = mood_model.predict(x_scaled)[<span class="num">0</span>]
+t3_e = time.perf_counter()</span>
+
+<span class="code-block" data-id="8"><span class="com"># Results</span>
+mean_ms = r4[<span class="str">'mean_us'</span>] / <span class="num">1000</span>
+p99_ms  = r4[<span class="str">'p99_us'</span>]  / <span class="num">1000</span>
+tput    = <span class="num">1_000_000</span> / r4[<span class="str">'mean_us'</span>]
+np_ms   = (r1[<span class="str">'mean_us'</span>] + r2[<span class="str">'mean_us'</span>] + r3np[<span class="str">'mean_us'</span>]) / <span class="num">1000</span>
+<span class="com"># NOTE: +5 ms is a fixed LAN overhead assumption</span>
+e2e_ms  = mean_ms + <span class="num">5</span>
+print(f<span class="str">"Throughput : {tput:,.0f} readings/s"</span>)</span>
+</div>
+
+<div class="explanation" id="exp">
+<div class="exp-empty">Click a code block above to see its explanation</div>
+</div>
+
+<script>
+const data = {
+  '1': {
+    label: 'Section 1 of 8 - Constants and configuration',
+    title: 'Model paths and feature schema',
+    body: '<p><code>_AI_DIR</code> points to <code>backend/app/ai/</code>, and <code>MODELS_PATH</code> points to <code>backend/app/ai/models/</code> - the directory holding the three <code>.pkl</code> files.</p><p><code>FEATURE_COLUMNS</code> defines the <strong>seven input features</strong> the ML model expects: heart rate, room temperature, humidity, light level, hour of day, is_night flag, and is_dark flag. <strong>The order must match exactly</strong> the order used during training - a mismatched order means the model will silently produce garbage predictions because it interprets one feature\'s value as another\'s.</p>',
+    quiz: 'If you trained the model with <code>heart_rate</code> as the third feature but list it first here, what happens at inference time? Will Python raise an error?',
+    answer: '<strong>No error</strong> - that is the danger. The arrays still have the correct shape (7 columns), so <code>scaler.transform()</code> and <code>predict()</code> run successfully. But the scaler will normalize a heart rate value (e.g. 120 BPM) using the statistics learned for room temperature (mean around 24 C). The output is a wildly wrong scaled value, then the model predicts based on garbage. <strong>Silent failure</strong> - the worst kind of bug. This is why feature column order is treated as a contract.'
+  },
+  '2': {
+    label: 'Section 2 of 8 - Statistics helper',
+    title: 'Computing mean, std, P95, P99, max',
+    body: '<p>This helper takes a list of measured times (in microseconds) and prints five metrics:</p><p><strong>mean</strong> = average &middot; <strong>std</strong> = standard deviation (how much the values vary) &middot; <strong>P95</strong> = 95% of measurements were faster than this &middot; <strong>P99</strong> = 99% were faster &middot; <strong>max</strong> = the slowest measurement.</p><p>Why report P95/P99 instead of just the mean? In real-time systems, the <strong>worst-case behavior</strong> is what determines whether the system is usable. A pipeline with mean = 1ms but P99 = 50ms means that 1 in every 100 readings experiences a 50x slowdown - for an elderly monitor, that could mean a delayed emergency alert.</p>',
+    quiz: 'If a system reports mean = 0.5ms but P99 = 20ms, would you call it "stable"? Why or why not?',
+    answer: '<strong>No, it is not stable.</strong> The 40x gap between mean and P99 indicates heavy tail latency - most readings are fast, but a meaningful fraction (1%) are dramatically slower. In a real-time monitoring system processing thousands of readings per hour, that 1% adds up to many delayed alerts per day. Reviewers will look for tight std and small P99/mean ratios as evidence of predictable, deployable behavior. A system with mean = 2ms and P99 = 3ms is more trustworthy than mean = 0.5ms with P99 = 20ms.'
+  },
+  '3': {
+    label: 'Section 3 of 8 - Model loading (fail-safe)',
+    title: 'The "use if available, otherwise skip" pattern',
+    body: '<p><code>_load()</code> checks whether each <code>.pkl</code> file exists: if yes, it calls <code>joblib.load()</code>; if no, it returns <code>None</code>.</p><p><code>has_ml</code> is set to <code>True</code> <strong>only when all three</strong> models load successfully. This flag controls whether the T3 pipeline actually runs.</p><p>This is the <strong>"T3 = 0" scenario</strong> from earlier: when <code>has_ml = False</code>, the <code>if</code> block is skipped, nothing happens between the two <code>perf_counter()</code> calls, and T3 measures around 0 us. The benchmark still runs and produces valid numbers for T1 and T2 - useful for early development before the model is trained.</p>',
+    quiz: 'If only <code>scaler.pkl</code> exists and the other two are missing, what value will <code>has_ml</code> have? Will the output print "YES" or "NO"?',
+    answer: '<strong><code>has_ml</code> will be <code>False</code></strong>, and the output will print <strong>"NO (rule+HRV only)"</strong>. The check uses <code>and</code>, which short-circuits on the first <code>None</code>: <code>scaler is not None</code> evaluates True, but <code>anomaly_model is not None</code> evaluates False, so the whole expression is False. All three files must be present for ML benchmarking to run.'
+  },
+  '4': {
+    label: 'Section 4 of 8 - Data generation and pre-warm',
+    title: 'Synthetic data + warming up HRV',
+    body: '<p><strong>Generating BPM:</strong> <code>seed=42</code> ensures reproducibility (running the script again produces the same sequence). <code>integers(40, 160, N)</code> creates BPM values that exercise all four risk branches (normal, warning_low, warning_high, emergency) so the benchmark is not biased toward a single code path.</p><p><strong>Pre-warming:</strong> HRV needs a 60-sample sliding window to compute meaningful statistics. This loop feeds 60 BPM values into the analyzer <strong>before timing starts</strong>, so when the benchmark loop actually runs, the window is already full. Without pre-warming, the first 60 measurements would be artificially fast - there is less data to compute over when the window is not full.</p>',
+    quiz: 'If you removed the pre-warm loop, would T2\'s mean latency go <strong>up</strong> or <strong>down</strong> compared to the current measurement? Why?',
+    answer: '<strong>It would go down</strong> - and that is exactly the problem. With an empty window, the first <code>compute()</code> call has only 1 sample (no variance to compute, no RMSSD between consecutive intervals). Each subsequent call has slightly more data. The first 60 measurements would all run faster than steady-state, dragging the mean down and making the system look faster than it actually is in production. Pre-warming ensures every measured call operates on a full 60-sample window, which is the realistic production state.'
+  },
+  '5': {
+    label: 'Section 5 of 8 - T1 Rule-based tier',
+    title: 'The fastest tier: just if-elif',
+    body: '<p>T1 is just three integer comparisons - <strong>no model calls, no allocations, no complex computation</strong>. Modern CPUs execute this in tens of nanoseconds.</p><p>Timing uses <code>time.perf_counter()</code> - Python\'s highest-resolution clock (around 100 nanoseconds). Multiplying by <code>1_000_000</code> converts seconds to microseconds for readable numbers.</p><p>T1\'s purpose in the actual production pipeline: <strong>react instantly</strong> to clear emergencies (BPM &gt;= 130 fires an alert immediately) without waiting for the slower ML tier. T1 is the safety net - if the ML pipeline crashes or hangs, T1 still catches life-threatening readings.</p>',
+    quiz: 'If <code>bpm = 65</code>, what value will <code>risk</code> hold after this block runs?',
+    answer: '<code>risk = "normal"</code>. Walking through: 65 &gt;= 130 is False, 65 &gt;= 100 is False, 65 &lt; 50 is False. None of the branches execute, so <code>risk</code> keeps its initial value of <code>"normal"</code>. This is the path taken for the majority of healthy readings - a good thing, since fewer branches means faster execution.'
+  },
+  '6': {
+    label: 'Section 6 of 8 - T2 HRV computation',
+    title: 'Heart Rate Variability over a sliding window',
+    body: '<p><strong>HRV (Heart Rate Variability)</strong> measures the variation between consecutive heartbeats. Low HRV correlates with stress, fatigue, or illness; high HRV indicates a healthy, relaxed autonomic nervous system. It is a clinically meaningful signal beyond just the BPM number.</p><p><code>add_bpm(bpm)</code> pushes the new sample into the 60-sample sliding window (and evicts the oldest). <code>compute()</code> calculates HRV metrics like RMSSD, SDNN, and pNN50 from the 60 samples.</p><p>T2 is slower than T1 because it does real arithmetic (variance, square roots) but still very fast since the window holds only 60 elements.</p>',
+    quiz: 'Why does the loop call <code>add_bpm()</code> again on every iteration, even though pre-warming already added 60 samples?',
+    answer: 'Pre-warming only fills the window <strong>once</strong>, before timing starts. During the benchmark, every new BPM reading is a <strong>new sample</strong> arriving from the stream - the window must keep sliding forward. Each <code>add_bpm()</code> call adds the current sample and evicts the oldest, keeping the window at exactly 60 samples but always reflecting the most recent 60 readings. This is what "sliding window" means - pre-warming sets the initial state, the loop maintains it.'
+  },
+  '7': {
+    label: 'Section 7 of 8 - T3a ML inference',
+    title: 'The heaviest tier: scaling + two model predictions',
+    body: '<p>Three steps:</p><p><strong>1. Feature packaging:</strong> build a 1-row x 7-column DataFrame with the real BPM plus fixed values for the other three sensors (room_temp = 24 C, humidity = 50%, light = 100).</p><p><strong>2. Scale:</strong> <code>scaler.transform()</code> normalizes all values to the same scale (mean = 0, std = 1). This is mandatory because the model was trained on scaled data - feeding raw values would produce wrong predictions.</p><p><strong>3. Predict with two models:</strong> <code>anomaly_model</code> detects unusual readings (returns -1 for anomalies), and <code>mood_model</code> predicts mood state (happy / sad / neutral).</p><p>T3a is the slowest tier mainly because of pandas DataFrame construction overhead. T3b measures the same logic with raw numpy to estimate how much faster it could be without DataFrame overhead.</p>',
+    quiz: 'Why are the three sensor values (temperature, humidity, light) hardcoded constants, while BPM varies?',
+    answer: 'Because this script measures <strong>compute cost, not data variability</strong>. Holding the other features constant isolates BPM as the only changing input, so the latency numbers reflect the pipeline\'s processing speed rather than fluctuations in feature distribution. In production those values would come from real MQTT sensor messages, but for benchmarking we want a controlled, reproducible workload. A reviewer might still ask "do model predict times depend on input values?" - for tree-based models like Isolation Forest, the path through the tree can vary slightly by input, but the difference is usually negligible compared to the DataFrame construction overhead.'
+  },
+  '8': {
+    label: 'Section 8 of 8 - Results and reporting',
+    title: 'Unit conversion and throughput calculation',
+    body: '<p><strong>mean_ms:</strong> converts us to ms (divide by 1000) so numbers are readable in the paper.</p><p><strong>tput (throughput):</strong> how many readings the pipeline can handle per second. Formula: 1 second = 1,000,000 us, divided by the mean us per reading gives readings/second. Example: mean = 500 us produces throughput = 2,000 readings/s.</p><p><strong>np_ms:</strong> estimated total latency if pandas DataFrames were replaced by raw numpy arrays - useful as an "upper bound on optimization."</p><p><strong>e2e_ms = mean_ms + 5:</strong> Warning - the +5 ms is an <strong>assumption</strong> for MQTT-to-Flask network overhead on a LAN, NOT measured by this script. The comment makes this explicit so you can defend it: "this is an architectural estimate, not a direct timing." Reviewers will absolutely ask where 5 ms comes from.</p>',
+    quiz: 'If mean = 0.8 ms, what is the reported throughput in readings/s? And what E2E latency will be printed?',
+    answer: '<strong>Throughput = 1,250 readings/s</strong> (calculation: 1,000,000 us divided by 800 us = 1,250). <strong>E2E latency = 5.8 ms</strong> (0.8 ms compute + 5 ms LAN assumption). For a system that receives BPM readings every few seconds from each elderly user, 1,250 readings/s easily supports thousands of concurrent users on one server. The 5.8 ms E2E means an alert can be issued well within human reaction time - defensible numbers for the paper.'
+  }
+};
+
+const visited = new Set();
+const expEl = document.getElementById('exp');
+const countEl = document.getElementById('count');
+const ids = ['1','2','3','4','5','6','7','8'];
+
+function render(id) {
+  document.querySelectorAll('.code-block').forEach(b => b.classList.remove('active'));
+  const block = document.querySelector('.code-block[data-id="' + id + '"]');
+  block.classList.add('active');
+  block.classList.add('visited');
+  visited.add(id);
+  countEl.textContent = visited.size;
+  const d = data[id];
+  const idx = ids.indexOf(id);
+  const prev = idx > 0 ? ids[idx-1] : null;
+  const next = idx < ids.length-1 ? ids[idx+1] : null;
+  expEl.innerHTML =
+    '<div class="code-label">' + d.label + '</div>' +
+    '<h3 class="exp-title">' + d.title + '</h3>' +
+    '<div class="exp-body">' + d.body + '</div>' +
+    '<div class="quiz">' +
+      '<div class="quiz-label">Quiz</div>' +
+      '<div class="quiz-q">' + d.quiz + '</div>' +
+      '<button class="quiz-toggle" onclick="toggleAns(\'' + id + '\', this)">Show answer</button>' +
+      '<div class="quiz-answer" id="ans-' + id + '">' + d.answer + '</div>' +
+    '</div>' +
+    '<div class="nav">' +
+      '<button onclick="render(\'' + prev + '\')" ' + (!prev?'disabled':'') + '>Previous</button>' +
+      '<button onclick="render(\'' + next + '\')" ' + (!next?'disabled':'') + '>Next</button>' +
+    '</div>';
+}
+
+function toggleAns(id, btn) {
+  const el = document.getElementById('ans-' + id);
+  el.classList.toggle('show');
+  btn.textContent = el.classList.contains('show') ? 'Hide answer' : 'Show answer';
+}
+
+document.querySelectorAll('.code-block').forEach(block => {
+  block.addEventListener('click', () => render(block.dataset.id));
+});
+</script>
+
+</body>
+</html>

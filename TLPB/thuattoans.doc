@@ -1,0 +1,256 @@
+  TAI LIEU RA SOAT THUAT TOAN PROJECT IOT-SMARTHOME-ELDERLY
+  Ngay cap nhat: 2026-05-06
+  Pham vi: Ma nguon hien co trong workspace (backend la noi chua thuat toan chinh)
+
+============================================================
+  1) TOM TAT NHANH
+============================================================
+  Project co cac nhom thuat toan sau:
+
+  A. Rule-based decision (nguong va logic dieu kien): CO
+  B. Machine Learning (anomaly + classification): CO
+  C. Time-series preprocessing va feature engineering: CO
+  D. Tinh toan tin hieu y sinh HRV: CO
+  E. NLP/Intent parsing cho tro ly AI: CO (rule + LLM parser)
+  F. Frontend/Mobile co thuat toan AI rieng: KHONG thay thay ro trong source app
+
+  Ket luan tong quan:
+- Day la he thong lai (hybrid): Rule-based + ML + phan tich y sinh + scheduler theo thoi gian.
+- Cac thuat toan duoc trien khai va goi trong runtime, khong chi nam trong tai lieu.
+
+============================================================
+  2) THUAT TOAN CHINH VA CHUC NANG
+============================================================
+  2.1 Tier 1 - Rule-based Heart Rate Risk
+  Muc dich:
+- Danh gia muc nguy co tuc thi dua tren BPM.
+
+  Logic:
+- BPM >= 130  -> emergency
+- BPM >= 100  -> warning_high
+- BPM < 50    -> warning_low
+- Con lai     -> normal
+
+  Vi tri code:
+- backend/app/ai/services/heart_rate_ai.py
+
+  Y nghia:
+- Lop bao ve co ban, phan ung nhanh, khong phu thuoc model.
+
+------------------------------------------------------------
+  2.2 Tier 2 - Anomaly Detection (IsolationForest)
+  Muc dich:
+- Phat hien mau du lieu bat thuong (outlier) khong can nhan.
+
+  Mo hinh:
+- sklearn.ensemble.IsolationForest
+
+  Input runtime:
+- HeartRateMonitor tao vector 7 feature context: heart_rate, room_temp, humidity, light_level, hour, is_night, is_dark
+- Sau do AnomalyDetector uu tien mo hinh HR-only neu loader co anomaly_hr_scaler.pkl
+- Neu khong co anomaly_hr_scaler thi fallback sang X_scaled day du
+
+  Output:
+- model.predict(...) == -1  -> anomaly
+- model.predict(...) == 1   -> normal
+
+  Vi tri code:
+- Train tong quat: backend/app/ai/training/train_pipeline.py
+- Infer: backend/app/ai/inference/anomaly_detector.py
+- Huong tune/evaluate HR-only: backend/tune_and_retrain_anomaly.py, backend/evaluate_anomaly_model.py
+
+  Ghi chu ky thuat:
+- contamination doc tu env ANOMALY_CONTAMINATION cho pipeline train tong quat.
+- Runtime hien tai ho tro ca fallback full-feature va nhanh HR-only uu tien neu model/scaler HR da duoc load.
+
+------------------------------------------------------------
+  2.3 Tier 3 - HRV Analysis (Heart Rate Variability)
+  Muc dich:
+- Danh gia bien thien nhip tim nguoi cao tuoi theo cua so truot.
+
+  Thuat toan tinh toan:
+- Chuyen BPM -> RR interval (ms): RR = 60000 / BPM
+- Mean RR: trung binh RR
+- SDNN: do lech chuan cua RR
+- RMSSD: can bac hai trung binh binh phuong sai khac lien tiep RR
+- pNN50: ty le (%) sai khac lien tiep RR > 50ms
+
+  Cua so va nguong:
+- WINDOW_SIZE = 60 mau
+- MIN_SAMPLES = 5
+- RMSSD_VERY_LOW = 10 ms
+- RMSSD_LOW = 15 ms
+- SDNN_LOW = 20 ms
+- PNN50_LOW = 3%
+
+  Risk level:
+- very_low_hrv: rmssd < 10 hoac sdnn < 20
+- low_hrv: rmssd < 15 hoac pnn50 < 3
+- normal: con lai
+
+  Vi tri code:
+- backend/app/ai/services/hrv_analyzer.py
+- Duoc goi trong backend/app/ai/services/heart_rate_ai.py
+
+------------------------------------------------------------
+  2.4 Mood Classification (RandomForestClassifier)
+  Muc dich:
+- Du doan trang thai/mood tu bo feature da chuan hoa.
+
+  Mo hinh:
+- sklearn.ensemble.RandomForestClassifier
+
+  Nhan training:
+- Tao nhan mood qua ham _calc_mood (rule labeling) trong pipeline train.
+
+  Output infer:
+- Tra ve label mood tu model; fallback "VIGILANT" neu model chua san sang.
+
+  Vi tri code:
+- Train: backend/app/ai/training/train_pipeline.py
+- Infer: backend/app/ai/inference/mood_predictor.py
+
+------------------------------------------------------------
+  2.5 Automation Classification (RandomForestClassifier)
+  Muc dich:
+- Du doan hanh dong tu dong hoa (action_label).
+
+  Mo hinh:
+- sklearn.ensemble.RandomForestClassifier
+
+  Nhan training:
+- action_label duoc gan tu ControlLog, canh cua so thoi gian 2 phut.
+
+  Output infer:
+- action label du doan; fallback "NO_ACTION" neu model chua san sang.
+
+  Vi tri code:
+- Train: backend/app/ai/training/train_pipeline.py
+- Infer: backend/app/ai/inference/automation_predictor.py
+- Tao dataset: backend/app/ai/training/dataset_builder.py
+
+------------------------------------------------------------
+  2.6 Feature Engineering va Data Alignment
+  Muc dich:
+- Chuan hoa dau vao cho train/infer, dam bao thu tu cot va chat luong du lieu.
+
+  Ky thuat:
+- Add hour tu timestamp (hoac gio he thong trong realtime)
+- is_night = 1 neu gio >= 20 hoac <= 6
+- is_dark = 1 neu light_level < 50
+- Pivot theo sensor code, forward fill, resample 5 phut, mean, dropna
+- finalize_features: bo sung cot thieu, ep so, fill NaN, sap xep dung thu tu FEATURE_COLUMNS
+
+  Vi tri code:
+- backend/app/ai/data/feature_engineering.py
+- backend/app/ai/training/dataset_builder.py
+- backend/app/ai/config.py
+
+------------------------------------------------------------
+  2.7 Rule Engine cho Automation Condition (Scheduler)
+  Muc dich:
+- Kich hoat hanh dong tu dong hoa dua tren dieu kien cau hinh DB.
+
+  Cach lam:
+- Parse chuoi dieu kien bang regex an toan (khong dung eval).
+- Ho tro mau: value > 35, value == 'ON', is_on == true...
+- Mapping toan tu: ==, !=, >, >=, <, <=
+- Chay interval 30s de kiem tra dieu kien.
+
+  Vi tri code:
+- backend/app/scheduler.py
+
+------------------------------------------------------------
+  2.8 NLP Intent Parsing (Hybrid Rule + LLM)
+  Muc dich:
+- Trich xuat intent dieu khien/query/chat tu cau lenh nguoi dung.
+
+  Co che:
+- Rule-based parser uu tien truoc (keyword + regex room/floor/device).
+- Neu rule khong match -> goi LLM (Ollama) de parse JSON intent.
+
+  Vi tri code:
+- backend/app/ai/services/ai_service.py
+
+  Luu y:
+- Day la thuat toan xu ly ngon ngu/ra quyet dinh, khong phai model train trong project.
+
+============================================================
+  3) LUONG CHAY THUAT TOAN THUC TE (RUNTIME)
+============================================================
+  Luon tim thay duong goi runtime cho phan AI tim mach:
+
+  1. MQTT listener nhan BPM tu topic heart_rate
+  2. Lay boi canh sensor gan nhat (room_temp, humidity, light_level)
+  3. Goi HeartRateMonitor.on_bpm_update(...)
+  4. Trong monitor:
+   - Cap nhat HRV analyzer (tier 3)
+   - Danh gia nguong BPM rule-based (tier 1)
+   - Neu co scaler/model -> anomaly + mood (tier 2)
+   - Nham muc risk neu anomaly/HRV bat thuong
+   - Phat alert qua socket + luu DB
+
+  Vi tri code quan trong:
+- backend/app/gateways/mqtt_listener.py
+- backend/app/ai/services/heart_rate_ai.py
+- backend/app/ai/inference/model_loader.py
+
+============================================================
+  4) CAC MODEL FILE DANG DUOC QUAN LY
+============================================================
+  Thu muc: backend/app/ai/models/
+
+- anomaly_model.pkl
+- anomaly_hr_scaler.pkl
+- automation_model.pkl
+- mood_model.pkl
+- scaler.pkl
+
+  ModelLoader se load cac model nay khi khoi dong backend.
+  Neu thieu file, he thong fallback o mot so nhanh (vd mood/anomaly).
+
+============================================================
+  5) THAM SO/CAU HINH QUAN TRONG
+============================================================
+- ANOMALY_CONTAMINATION (env): ti le outlier cho IsolationForest
+- FEATURE_COLUMNS (co dinh):
+    heart_rate, room_temp, humidity, light_level, hour, is_night, is_dark
+- ALERT_COOLDOWN_SEC = 30 (giam spam alert)
+- HRV window/threshold nhu muc 2.3
+
+============================================================
+  6) DANH GIA CHAT LUONG THUAT TOAN (THEO SOURCE HIEN TAI)
+============================================================
+  Diem manh:
+- Kien truc hybrid 3 tang: rule + ML + HRV
+- Co fallback khi model/scaler khong san sang
+- Feature order duoc co dinh ro rang, giam loi mismatch train/infer
+- Condition evaluator an toan (regex), tranh nguy co eval injection
+
+  Diem can luu y:
+- Mood/automation labels co phan sinh tong hop va rule-labeling -> can theo doi drift
+- Dataset real co the it, dang bo sung synthetic trong giai doan dau
+- Can quy trinh danh gia model dinh ky (precision/recall/anomaly false positive)
+
+============================================================
+  7) CAC THUAT TOAN KHONG THAY TRIEN KHAI AI RIENG
+============================================================
+- Frontend: chu yeu UI/state/socket, khong thay model ML suy luan tai client.
+- Mobile app (ma nguon lib): khong thay khoi AI anomaly/HRV training/predict rieng.
+
+============================================================
+  8) KET LUAN CUOI CUNG
+============================================================
+  Project CO thuat toan va CO dang van hanh:
+
+  1) Rule-based threshold cho nhip tim
+  2) IsolationForest anomaly detection
+  3) RandomForest mood classification
+  4) RandomForest automation classification
+  5) HRV metrics (RMSSD, SDNN, pNN50, Mean RR)
+  6) Feature engineering time-series + standardization
+  7) Rule engine scheduler dieu kien tu dong hoa
+  8) Hybrid NLP intent parsing (rule + LLM)
+
+  Tai lieu nay duoc tong hop truc tiep tu source code hien co de phuc vu bao cao do an.
+

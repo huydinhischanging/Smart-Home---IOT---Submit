@@ -1,0 +1,74 @@
+# =============================================================
+# docker-compose.yml — IOT Smart Home for Elderly
+# Khởi động toàn bộ stack: backend + MySQL
+#
+# Sử dụng:
+#   docker compose up -d           # Khởi động
+#   docker compose logs -f backend # Xem log
+#   docker compose down            # Dừng
+#   docker compose exec backend python init_db.py  # Khởi tạo DB
+# =============================================================
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:-changeme_root}
+      MYSQL_DATABASE: ${DB_NAME:-alfred_db}
+      MYSQL_USER: ${DB_USER:-alfred}
+      MYSQL_PASSWORD: ${DB_PASS:-changeme}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASS:-changeme_root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: ${FLASK_ENV:-production}
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-alfred_db}
+      DB_USER: ${DB_USER:-alfred}
+      DB_PASS: ${DB_PASS:-changeme}
+      MQTT_BROKER_URL: ${MQTT_BROKER_URL}
+      MQTT_PORT: ${MQTT_PORT:-8883}
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-Alfred AI}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    volumes:
+      # Persist AI models and uploaded files
+      - backend_models:/app/app/ai/models
+      - backend_files:/app/files
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  mysql_data:
+  backend_models:
+  backend_files:

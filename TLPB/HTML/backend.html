@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Backend Architecture - Smart House IoT</title>
+    <style>
+        :root {
+            --input-bg: #4b7bec;
+            --flask-bg: #2d3436;
+            --logic-bg: #e67e22;
+            --infra-bg: #27ae60;
+            --db-bg: #d35400;
+            --gateway-bg: #8e44ad;
+            --border-radius: 12px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .layer {
+            background: #ffffff;
+            border: 2px solid #dfe6e9;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            position: relative;
+        }
+
+        .layer-label {
+            font-size: 0.7rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #b2bec3;
+            margin-bottom: 15px;
+            letter-spacing: 1.5px;
+            border-bottom: 1px solid #f1f1f1;
+            padding-bottom: 5px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+        }
+
+        .node {
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+
+        .node:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+
+        /* Color classes */
+        .input-node { background-color: var(--input-bg); }
+        .flask-node { background-color: var(--flask-bg); }
+        .logic-node { background-color: var(--logic-bg); }
+        .infra-node { background-color: var(--infra-bg); }
+        .db-node { background-color: var(--db-bg); }
+        .gateway-node { background-color: var(--gateway-bg); }
+
+        .arrow {
+            text-align: center;
+            font-size: 24px;
+            color: #bdc3c7;
+            margin: -10px 0;
+            font-weight: bold;
+        }
+
+        .sub { font-size: 0.65rem; opacity: 0.85; margin-top: 5px; font-weight: normal; font-style: italic; }
+        .file { font-family: monospace; font-size: 0.6rem; background: rgba(0,0,0,0.2); padding: 2px; margin-top: 4px; border-radius: 3px; }
+
+        .dual-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 style="margin-bottom: 5px;">KIẾN TRÚC HỆ THỐNG BACKEND</h1>
+    <p style="color: #636e72; margin-bottom: 30px;">IoT Smart House Platform for Elderly Care</p>
+
+    <div class="container">
+        
+        <!-- Layer 1: Inputs -->
+        <div class="layer">
+            <div class="layer-label">1. Điểm truy cập & Thiết bị (Entry Points)</div>
+            <div class="grid">
+                <div class="node input-node"><b>Desktop GUI</b><span class="sub">PyQt6 Control Center</span><span class="file">desktop_control_center/</span></div>
+                <div class="node input-node"><b>Mobile / Web App</b><span class="sub">Frontend Interface</span></div>
+                <div class="node input-node"><b>ESP32 / Sensors</b><span class="sub">Hardware Data</span></div>
+            </div>
+        </div>
+
+        <div class="arrow">↓</div>
+
+        <!-- Layer 2: Flask App -->
+        <div class="layer">
+            <div class="layer-label">2. Cổng vào trung tâm (Flask App Core)</div>
+            <div class="grid">
+                <div class="node flask-node"><b>app/__init__.py</b><span class="sub">Blueprints, MQTT, Socket, Scheduler Init</span></div>
+                <div class="node flask-node"><b>Presentation API</b><span class="sub">Auth, Device, Alert, AI, Reminder...</span><span class="file">app/presentation/api/</span></div>
+            </div>
+        </div>
+
+        <div class="arrow">↓</div>
+
+        <!-- Layer 3: Use Cases & Logic -->
+        <div class="layer">
+            <div class="layer-label">3. Tầng nghiệp vụ (Business Logic / UseCases)</div>
+            <div class="grid">
+                <div class="node logic-node"><b>Device UC</b><span class="sub">Điều khiển & Trạng thái</span></div>
+                <div class="node logic-node"><b>Alert UC</b><span class="sub">Xử lý cảnh báo SOS</span></div>
+                <div class="node logic-node"><b>Alfred AI UC</b><span class="sub">Trợ lý ảo & Chẩn đoán</span></div>
+                <div class="node logic-node"><b>Medicine UC</b><span class="sub">Nhắc nhở thuốc</span></div>
+                <div class="node logic-node"><b>Automation UC</b><span class="sub">Lập lịch & Tự động</span></div>
+            </div>
+        </div>
+
+        <div class="arrow">↓</div>
+
+        <!-- Layer 4: Infrastructure & Gateways -->
+        <div class="dual-columns">
+            <div class="layer">
+                <div class="layer-label">4a. Hạ tầng dữ liệu</div>
+                <div class="grid">
+                    <div class="node infra-node"><b>Repositories</b><span class="sub">SQLAlchemy Models</span></div>
+                    <div class="node db-node"><b>MySQL Database</b><span class="sub">Persistence Storage</span></div>
+                </div>
+            </div>
+            <div class="layer">
+                <div class="layer-label">4b. Cổng giao tiếp (Gateways)</div>
+                <div class="grid">
+                    <div class="node gateway-node"><b>MQTT Listener</b><span class="sub">Broker Communication</span></div>
+                    <div class="node gateway-node"><b>Socket.IO</b><span class="sub">Realtime UI Sync</span></div>
+                    <div class="node gateway-node"><b>SMTP / Mail</b><span class="sub">Email Notifications</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow">↑ ↓</div>
+
+        <!-- Layer 5: Background Jobs -->
+        <div class="layer" style="border-style: dashed; border-color: var(--logic-bg);">
+            <div class="layer-label">5. Tác vụ chạy ngầm (Background Workers)</div>
+            <div class="grid">
+                <div class="node logic-node" style="background-color: #d35400;"><b>APScheduler</b><span class="sub">Quét lịch nhắc thuốc & Automation định kỳ</span><span class="file">app/scheduler.py</span></div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

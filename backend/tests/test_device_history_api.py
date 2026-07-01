@@ -8,6 +8,7 @@ from app.gateways.mqtt_publisher import MqttPublisher
 from app.infrastructure.persistence.models import ControlLog, Device, UserModel
 from app.infrastructure.persistence.repositories.device_repository import DeviceRepository
 from app.infrastructure.persistence.repositories.log_repository import ControlLogRepository
+from app.infrastructure.persistence.repositories.sensor_repository import SensorRepository
 from app.infrastructure.persistence.repositories.status_repository import DeviceStatusRepository
 from app.presentation.api.auth_api import auth_api
 from app.presentation.api.device_api import device_api
@@ -50,6 +51,7 @@ def _make_device_app(monkeypatch):
 
     device_repo = DeviceRepository()
     log_repo = ControlLogRepository()
+    sensor_repo = SensorRepository()
     usecase = DeviceUseCase(
         device_repo=device_repo,
         status_repo=DeviceStatusRepository(),
@@ -61,6 +63,7 @@ def _make_device_app(monkeypatch):
     monkeypatch.setattr(device_api_module.container, "device_usecase", lambda: usecase)
     monkeypatch.setattr(device_api_module.container, "device_repository", lambda: device_repo)
     monkeypatch.setattr(device_api_module.container, "log_repository", lambda: log_repo)
+    monkeypatch.setattr(device_api_module.container, "sensor_repository", lambda: sensor_repo)
     monkeypatch.setattr(device_api_module.container, "realtime_notifier", lambda: _DummyRealtimeNotifier())
     return app
 
@@ -143,6 +146,51 @@ def test_device_history_uses_stable_device_id_after_code_reuse(monkeypatch):
         assert len(payload["data"]) == 1
         assert payload["data"][0]["action"] == "CONTROL: OFF"
         assert payload["data"][0]["device_code"] == "lamp"
+    finally:
+        with app.app_context():
+            db.session.remove()
+            db.drop_all()
+
+
+def test_sensor_history_v2_returns_sensor_data(monkeypatch):
+    app = _make_device_app(monkeypatch)
+
+    with app.app_context():
+        db.create_all()
+
+    try:
+        client = app.test_client()
+        token = _register(client, "sensor-user", "sensor@example.com")
+
+        with app.app_context():
+            user = UserModel.query.filter_by(email="sensor@example.com").one()
+            device_repo = DeviceRepository()
+            sensor_repo = SensorRepository()
+
+            device = device_repo.create(
+                name="Do am A1",
+                code="do_am_a1",
+                control_types=["humidity"],
+                category="sensor",
+                device_type="humidity",
+                metadata_json={"unit": "%"},
+                user_id=user.id,
+            )
+            db.session.flush()
+            sensor_repo.save(device.id, 65.0)
+            sensor_repo.save(device.id, 66.5)
+            db.session.commit()
+
+        response = client.get(
+            "/api/devices/sensors/humidity/do_am_a1/history",
+            headers=_bearer(token),
+        )
+
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert payload["success"] is True
+        assert len(payload["data"]) == 2
+        assert payload["data"][0]["device_code"] == "do_am_a1"
     finally:
         with app.app_context():
             db.session.remove()

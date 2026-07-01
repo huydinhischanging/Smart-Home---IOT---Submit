@@ -1,0 +1,233 @@
+SƠ ĐỒ FRONTEND - IoT Smart House Platform for Elderly Care and Daily Activity Support
+
+Tài liệu này mô tả kiến trúc frontend hiện tại theo đúng luồng chạy thật trong mã nguồn.
+
+==================================================
+1. SƠ ĐỒ TỔNG QUAN
+==================================================
+
+```mermaid
+flowchart TD
+  BROWSER[Browser / Web App] --> HTML[frontend/index.html\nHTML shell]
+  HTML --> CSS1[frontend/src/styles/main.css]
+  HTML --> CSS2[frontend/src/styles/modern.css]
+  HTML --> FONTS[Google Fonts]
+  HTML --> SOCKETLIB[Socket.IO CDN]
+  HTML --> VITE[Vite Dev Server / Build Output\nfrontend/vite.config.js]
+  VITE --> MAIN[frontend/src/main.js\nKhởi động giao diện web & nạp state]
+
+    MAIN --> AUTH[Auth Store\nfrontend/src/stores/auth.store.js]
+    MAIN --> DEVICE[Device Store\nfrontend/src/stores/device.store.js]
+    MAIN --> ALERT[Alert Store\nfrontend/src/stores/alert.store.js]
+    MAIN --> UI[UI Store\nfrontend/src/stores/ui.store.js]
+    MAIN --> SOCKET[initSocket()\nfrontend/src/services/socket.client.js]
+    MAIN --> DASH[initDashboardController()\nfrontend/src/dashboard/dashboard.controller.js]
+    MAIN --> ALERTCTL[alertController.init()\nfrontend/src/modules/alert/alert.controller.js]
+    MAIN --> VOICE[voiceController.init()\nfrontend/src/modules/companion/voice.controller.js]
+    MAIN --> TERM[batTerminal.render()\nfrontend/src/modules/companion/terminal.js]
+    MAIN --> MAP[initMapRoomSelector()\nfrontend/src/modules/map/map.room-selector.js]
+    MAIN --> ECG[BatECG\nfrontend/src/modules/sensor/sensor.chart.js]
+
+    DASH --> API[ApiClient facade\nfrontend/src/services/api/index.js]
+    ALERTCTL --> API
+    VOICE --> API
+    AUTH --> AUTHST[auth.storage.js]
+    UI --> LS[(localStorage)]
+    AUTHST --> SS[(sessionStorage)]
+
+    API --> HTTP[HttpClient\nfrontend/src/services/api/http.client.js]
+    SOCKET --> WS[(Socket.IO client)]
+    HTTP --> BACKAPI[(Backend /api)]
+    WS --> BACKWS[(Backend /socket.io)]
+
+    BACKAPI --> BACKEND[Flask backend\nbackend/app]
+    BACKWS --> BACKEND
+
+    DEVICE --> DEVICEUI[Device UI / Cards]
+    ALERT --> ALERTUI[Alert Panel]
+    UI --> THEMES[Theme / Sidebar / Modals / Notifications]
+```
+
+==================================================
+2. LUỒNG KHỞI TẠO CHÍNH
+==================================================
+
+1) Trình duyệt tải giao diện web
+- `frontend/index.html` là HTML shell ban đầu.
+- File này nạp CSS global, font, Socket.IO CDN và bundle Vite.
+- `frontend/src/main.js` là điểm khởi động chính của giao diện web.
+
+2) CSS được nạp ngay từ HTML và JS
+- CSS global chính: `frontend/src/styles/main.css`
+- CSS giao diện hiện đại: `frontend/src/styles/modern.css`
+- CSS theo ngữ cảnh dashboard/login cũng được import từ JS:
+  - `frontend/src/styles/dashboard.css`
+  - `frontend/src/styles/login.css`
+
+3) Main.js khởi động giao diện web và nạp các store
+- `useAuthStore`
+- `useDeviceStore`
+- `useAlertStore`
+- `useUIStore`
+
+4) Kiểm tra phiên đăng nhập
+- Nếu chưa có token thì chuyển về trang login.
+- Nếu có token thì gọi `authStore.loadUser()` để lấy profile.
+
+5) Mở Socket.IO
+- Gọi `initSocket(authStore.token)`.
+- Frontend bắt realtime từ backend qua `socket.io-client`.
+
+6) Nạp thiết bị
+- `deviceStore.fetchDevices()` gọi `/api/devices`.
+- Danh sách thiết bị được render lên dashboard.
+
+7) Khởi tạo dashboard và các module phụ
+- Dashboard controller.
+- Alert controller.
+- Voice controller.
+- Terminal HUD.
+- Map room selector.
+- ECG animation.
+
+==================================================
+3. CÁC KHỐI CHỨC NĂNG CHÍNH
+==================================================
+
+A. Auth / Session
+- File chính: `frontend/src/stores/auth.store.js`
+- Trách nhiệm:
+  - lưu token
+  - lưu user profile
+  - login / logout / register
+  - refresh profile khi app mở lại
+- Session được lưu qua `frontend/src/services/auth.storage.js`.
+
+B. Device management
+- File chính: `frontend/src/stores/device.store.js`
+- Trách nhiệm:
+  - tải danh sách thiết bị
+  - thêm / xóa / điều khiển thiết bị
+  - cập nhật trạng thái khi có socket event
+- Đây là nơi frontend giữ state của tất cả thiết bị.
+
+C. Alert management
+- File chính: `frontend/src/stores/alert.store.js`
+- File UI: `frontend/src/modules/alert/alert.controller.js`
+- Trách nhiệm:
+  - hiển thị alert realtime
+  - mark read / delete
+  - xử lý cảnh báo SOS, nhắc thuốc, cảnh báo môi trường
+  - gợi ý hành động có xác nhận / mute
+
+D. UI state
+- File chính: `frontend/src/stores/ui.store.js`
+- Trách nhiệm:
+  - theme sáng/tối
+  - sidebar
+  - modal
+  - notification tạm
+  - trạng thái kết nối Socket.IO
+
+E. API client layer
+- `frontend/src/services/api/index.js`
+- `frontend/src/services/api/http.client.js`
+- Trách nhiệm:
+  - gom các API thành một facade `ApiClient`
+  - gửi HTTP request chuẩn JSON
+  - tự đính kèm token nếu có
+  - map lỗi HTTP thành exception rõ ràng
+
+F. Realtime layer
+- `frontend/src/services/socket.client.js`
+- Trách nhiệm:
+  - kết nối Socket.IO
+  - nhận `device_state_changed`
+  - nhận `alert`
+  - nhận `sos_alert`
+  - nhận `medicine_reminder`
+  - nhận `anomaly_detected`
+  - cập nhật store và alert panel
+
+G. Dashboard controller
+- File: `frontend/src/dashboard/dashboard.controller.js`
+- Trách nhiệm:
+  - điều phối UI dashboard
+  - mở modal thêm thiết bị
+  - gửi lệnh điều khiển
+  - render danh sách thiết bị
+  - lắng nghe socket để cập nhật giao diện
+
+H. Companion / Alfred modules
+- `frontend/src/modules/companion/terminal.js`
+- `frontend/src/modules/companion/chat.panel.js`
+- `frontend/src/modules/companion/voice.controller.js`
+- Trách nhiệm:
+  - giao diện chat / terminal của Alfred
+  - voice command
+  - diagnostic panel
+  - hệ trợ lý cho người dùng
+
+I. Map / room selection
+- `frontend/src/modules/map/map.room-selector.js`
+- Trách nhiệm:
+  - chọn phòng trên sơ đồ
+  - gắn bối cảnh phòng cho điều khiển / trợ lý
+
+J. Sensor / ECG presentation
+- `frontend/src/modules/sensor/sensor.chart.js`
+- Trách nhiệm:
+  - vẽ biểu đồ nhịp tim
+  - animation ECG trên dashboard
+
+==================================================
+4. GIAO TIẾP VỚI BACKEND
+==================================================
+
+Frontend nói chuyện với backend qua 2 kênh chính:
+
+1) HTTP REST
+- Dùng `HttpClient` và `ApiClient`.
+- Gọi các route như `/api/auth/*`, `/api/devices`, `/api/alerts`, `/api/reminders`, `/api/ai/*`.
+
+2) Socket.IO realtime
+- Dùng `initSocket()`.
+- Nhận sự kiện realtime để cập nhật UI ngay.
+
+Trong môi trường dev:
+- Vite proxy `/api` và `/socket.io` về `http://127.0.0.1:5000`.
+- File cấu hình: `frontend/vite.config.js`.
+
+==================================================
+5. MẤY ĐIỂM “SMART” Ở FRONTEND
+==================================================
+
+1) Realtime dashboard:
+- Khi backend bắn socket, frontend cập nhật device/alert ngay.
+
+2) State quản lý rõ ràng:
+- Tách auth, device, alert, ui thành các store riêng.
+
+3) Có lớp API facade:
+- `ApiClient` gom nhiều endpoint, dễ gọi và dễ bảo trì.
+
+4) Có trải nghiệm điều khiển tập trung:
+- Dashboard + alert panel + voice + terminal + map selector nằm trong một giao diện.
+
+5) Có đồng bộ người dùng:
+- Session lưu bằng `auth.storage.js`, reload trang vẫn giữ trạng thái.
+
+==================================================
+6. GHI CHÚ VỀ 3D
+==================================================
+
+- Trong luồng chính hiện tại, frontend web không còn coi 3D là phần bắt buộc.
+- Nếu có module 3D cũ trong code, nên xem là legacy / không phải luồng trình bày chính.
+- Khi bảo vệ, chỉ cần nói frontend tập trung vào dashboard, realtime, voice, alert, map, và điều khiển thiết bị.
+
+==================================================
+7. CÂU MÔ TẢ NGẮN ĐỂ THUYẾT TRÌNH
+==================================================
+
+"Frontend của đề tài được khởi động từ `main.js`, nơi hệ thống nạp các Pinia store, kết nối Socket.IO, tải danh sách thiết bị và khởi tạo dashboard, alert panel, voice controller, terminal và map selector. Tầng dịch vụ được tách riêng thành `ApiClient`, `HttpClient` và `socket.client.js`, nên frontend vừa gọi REST API vừa nhận realtime từ backend. Nhờ cách tổ chức này, giao diện có thể cập nhật trạng thái thiết bị, cảnh báo và trợ lý AI theo thời gian thực, đồng thời giữ trạng thái đăng nhập và theme một cách nhất quán." 
+*** End Patch

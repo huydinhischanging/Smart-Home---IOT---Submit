@@ -134,7 +134,7 @@ def test_delete_reminder(usecase, app):
 
         ok = usecase.delete(rid, user_id)
         assert ok is True
-        assert MedicineReminderModel.query.get(rid) is None
+        assert db.session.get(MedicineReminderModel, rid) is None
 
 
 def test_delete_wrong_user(usecase, app):

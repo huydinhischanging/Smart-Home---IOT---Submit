@@ -1,0 +1,37 @@
+name: smart_home_mobile
+description: Smart Home IoT Mobile App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_driver:
+    sdk: flutter
+  http: ^1.2.0
+  dio: ^5.4.0
+  socket_io_client: ^2.0.3+1
+  mqtt_client: ^10.2.1
+  flutter_riverpod: ^2.5.1
+  flutter_secure_storage: ^9.0.0
+  fl_chart: ^0.68.0
+  intl: ^0.19.0
+  logger: ^2.3.0
+  shared_preferences: ^2.2.3
+  speech_to_text: ^7.3.0
+  network_info_plus: ^6.1.1
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  integration_test:
+    sdk: flutter
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  speech_to_text_platform_interface: ^2.3.0
+
+flutter:
+  uses-material-design: true

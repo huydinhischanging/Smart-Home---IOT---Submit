@@ -1,0 +1,1223 @@
+openapi: "3.0.3"
+info:
+  title: "IOT Smart Home for Elderly — Alfred API"
+  description: |
+    REST API cho hệ thống nhà thông minh hỗ trợ người cao tuổi.
+    
+    ## Xác thực
+    Tất cả endpoint (trừ `/api/auth/login`, `/api/auth/register`) đều yêu cầu signed bearer token.
+    Token được ký bằng `itsdangerous` và được gửi qua **HttpOnly Cookie** (`batman_os_auth`) hoặc header `Authorization: Bearer <token>`.
+    
+    ## Rate Limiting
+    - Login: 5 req/phút, 20 req/giờ
+    - AI Chat: 30 req/phút, 300 req/giờ
+    - Devices: 60 req/phút, 2000 req/giờ
+    - Mặc định: 100 req/giờ, 500 req/ngày
+  version: "2.0.0"
+  contact:
+    name: "Tu Dinh Huy — ITITIU21213"
+    email: "ITITIU21213@student.hcmiu.edu.vn"
+  license:
+    name: "Academic (Thesis Project)"
+
+servers:
+  - url: "http://127.0.0.1:5000"
+    description: "Local development"
+  - url: "https://your-domain.com"
+    description: "Production"
+
+tags:
+  - name: auth
+    description: Đăng ký, đăng nhập, quản lý tài khoản
+  - name: devices
+    description: Quản lý và điều khiển thiết bị IoT
+  - name: rooms
+    description: Quản lý phòng
+  - name: ai
+    description: Alfred AI — trợ lý thông minh
+  - name: alerts
+    description: Cảnh báo và quy tắc cảnh báo
+  - name: patient
+    description: Hồ sơ sức khỏe và báo cáo bệnh nhân
+  - name: reminders
+    description: Nhắc nhở uống thuốc
+  - name: automation
+    description: Tự động hóa và lịch trình
+  - name: map
+    description: Bản đồ thiết bị 3D
+  - name: coospo
+    description: Tích hợp vòng đeo theo dõi nhịp tim Coospo
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: batman_os_auth
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        message:
+          type: string
+          example: "Authentication required"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: "elder01"
+        email:
+          type: string
+          format: email
+          example: "elder@example.com"
+        role:
+          type: string
+          enum: [user, admin]
+          example: "user"
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+
+    Device:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Đèn phòng khách"
+        code:
+          type: string
+          example: "den"
+        icon:
+          type: string
+          example: "💡"
+        category:
+          type: string
+          enum: [light, fan, sensor, ac, other]
+          example: "light"
+        room_id:
+          type: integer
+          nullable: true
+          example: 2
+        status:
+          type: object
+          properties:
+            state:
+              type: string
+              enum: [on, off, unknown]
+              example: "off"
+            updated_at:
+              type: string
+              format: date-time
+        map_x:
+          type: number
+          nullable: true
+        map_y:
+          type: number
+          nullable: true
+
+    Room:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Phòng ngủ"
+        user_id:
+          type: integer
+          example: 1
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          example: "heart_rate"
+        message:
+          type: string
+          example: "Nhịp tim bất thường: 130 BPM"
+        severity:
+          type: string
+          enum: [normal, caution, warning, critical]
+          example: "warning"
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        device_code:
+          type: string
+          nullable: true
+
+    PatientProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        full_name:
+          type: string
+          example: "Nguyễn Văn A"
+        date_of_birth:
+          type: string
+          format: date
+          example: "1955-06-15"
+        gender:
+          type: string
+          enum: [male, female, other]
+        phone:
+          type: string
+        medical_conditions:
+          type: string
+          example: "Tăng huyết áp, tiểu đường type 2"
+        emergency_contact:
+          type: string
+        report_email:
+          type: string
+          format: email
+
+    Reminder:
+      type: object
+      properties:
+        id:
+          type: integer
+        medicine_name:
+          type: string
+          example: "Aspirin 81mg"
+        dosage:
+          type: string
+          example: "1 viên"
+        schedule_time:
+          type: string
+          example: "08:00"
+        days_of_week:
+          type: string
+          example: "1,2,3,4,5"
+        is_active:
+          type: boolean
+
+    Automation:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: "Tắt đèn buổi tối"
+        trigger_type:
+          type: string
+          enum: [schedule, sensor, manual]
+        action:
+          type: object
+        is_active:
+          type: boolean
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+paths:
+
+  # ================================================================
+  # AUTH
+  # ================================================================
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Đăng ký tài khoản mới
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password]
+              properties:
+                username:
+                  type: string
+                  example: "elder01"
+                email:
+                  type: string
+                  format: email
+                  example: "elder@example.com"
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: "SecurePass123!"
+      responses:
+        "201":
+          description: Đăng ký thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "User registered successfully"
+                  user:
+                    $ref: "#/components/schemas/User"
+        "400":
+          description: Dữ liệu không hợp lệ hoặc email đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Đăng nhập
+      description: Trả về signed bearer token trong HttpOnly cookie `batman_os_auth`
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identity, password]
+              properties:
+                identity:
+                  type: string
+                  description: Email hoặc tên đăng nhập
+                  example: "elder01"
+                password:
+                  type: string
+                  format: password
+                  example: "SecurePass123!"
+      responses:
+        "200":
+          description: Đăng nhập thành công
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: "batman_os_auth=<token>; HttpOnly; Secure; SameSite=Strict; Path=/"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Sai mật khẩu hoặc tài khoản không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Quá nhiều lần thử đăng nhập (5/phút)
+
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Đăng xuất (xóa cookie)
+      responses:
+        "200":
+          description: Đăng xuất thành công
+
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Lấy thông tin người dùng hiện tại
+      responses:
+        "200":
+          description: Thông tin user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/auth/refresh:
+    get:
+      tags: [auth]
+      summary: Làm mới token (gia hạn 7 ngày)
+      responses:
+        "200":
+          description: Token mới được set trong cookie
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/auth/change-password:
+    post:
+      tags: [auth]
+      summary: Đổi mật khẩu
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password:
+                  type: string
+                  format: password
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 8
+      responses:
+        "200":
+          description: Đổi mật khẩu thành công
+        "400":
+          description: Mật khẩu hiện tại sai
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/auth/forgot-password:
+    post:
+      tags: [auth]
+      summary: Gửi email đặt lại mật khẩu
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Email đã được gửi (nếu địa chỉ tồn tại)
+
+  /api/auth/reset-password:
+    post:
+      tags: [auth]
+      summary: Đặt lại mật khẩu bằng token từ email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, new_password]
+              properties:
+                token:
+                  type: string
+                  example: "AbC123xyz..."
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 8
+      responses:
+        "200":
+          description: Đặt lại mật khẩu thành công
+        "400":
+          description: Token không hợp lệ hoặc hết hạn
+
+  # ================================================================
+  # DEVICES
+  # ================================================================
+  /api/devices:
+    get:
+      tags: [devices]
+      summary: Lấy danh sách thiết bị
+      parameters:
+        - in: query
+          name: room_id
+          schema:
+            type: integer
+          description: Lọc theo phòng
+      responses:
+        "200":
+          description: Danh sách thiết bị
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  status:
+                    type: string
+                    example: "online"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Device"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      tags: [devices]
+      summary: Tạo thiết bị mới
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, code]
+              properties:
+                name:
+                  type: string
+                  example: "Đèn phòng ngủ"
+                code:
+                  type: string
+                  example: "den_pn"
+                  description: Mã duy nhất của thiết bị, phải khớp với firmware ESP32
+                icon:
+                  type: string
+                  example: "💡"
+                category:
+                  type: string
+                  enum: [light, fan, sensor, ac, other]
+                  example: "light"
+                room_id:
+                  type: integer
+                  nullable: true
+                control_types:
+                  type: array
+                  items:
+                    type: string
+                  example: ["on", "off"]
+      responses:
+        "201":
+          description: Thiết bị đã được tạo
+        "400":
+          description: Dữ liệu không hợp lệ
+
+  /api/devices/control:
+    post:
+      tags: [devices]
+      summary: Điều khiển thiết bị (bật/tắt)
+      description: |
+        Gửi lệnh đến thiết bị qua MQTT. Backend publish message đến `home/control/{code}`.
+        ESP32 nhận và thực hiện lệnh, sau đó phản hồi qua `home/status/{code}`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_name, action]
+              properties:
+                device_name:
+                  type: string
+                  example: "Đèn phòng khách"
+                action:
+                  type: string
+                  enum: [on, off, toggle]
+                  example: "on"
+      responses:
+        "200":
+          description: Lệnh đã được gửi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/devices/{id}:
+    get:
+      tags: [devices]
+      summary: Lấy chi tiết một thiết bị
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Thông tin thiết bị
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "404":
+          description: Không tìm thấy thiết bị
+
+    put:
+      tags: [devices]
+      summary: Cập nhật thông tin thiết bị
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                room_id:
+                  type: integer
+                  nullable: true
+                icon:
+                  type: string
+                category:
+                  type: string
+      responses:
+        "200":
+          description: Cập nhật thành công
+
+    delete:
+      tags: [devices]
+      summary: Xóa thiết bị (soft delete)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Xóa thành công
+        "404":
+          description: Không tìm thấy
+
+  /api/devices/{id}/history:
+    get:
+      tags: [devices]
+      summary: Lịch sử điều khiển thiết bị
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Danh sách lịch sử điều khiển
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        action:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+                        source:
+                          type: string
+                          enum: [app, mqtt, schedule, ai]
+
+  # ================================================================
+  # ROOMS
+  # ================================================================
+  /api/rooms:
+    get:
+      tags: [rooms]
+      summary: Lấy danh sách phòng
+      responses:
+        "200":
+          description: Danh sách phòng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Room"
+
+    post:
+      tags: [rooms]
+      summary: Tạo phòng mới
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  example: "Phòng ngủ"
+      responses:
+        "201":
+          description: Phòng đã được tạo
+
+  /api/rooms/{id}:
+    delete:
+      tags: [rooms]
+      summary: Xóa phòng
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Xóa thành công
+        "404":
+          description: Không tìm thấy
+
+  # ================================================================
+  # AI (ALFRED)
+  # ================================================================
+  /api/ai/status:
+    get:
+      tags: [ai]
+      summary: Kiểm tra trạng thái Alfred AI engine
+      responses:
+        "200":
+          description: Trạng thái AI
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  engine:
+                    type: string
+                    example: "Alfred AI"
+                  version:
+                    type: string
+                    example: "2.0"
+                  status:
+                    type: string
+                    example: "online"
+                  modules:
+                    type: array
+                    items:
+                      type: string
+                    example: ["chat", "device_control", "sensor_analysis", "automation"]
+
+  /api/ai/chat:
+    post:
+      tags: [ai]
+      summary: Gửi tin nhắn đến Alfred AI
+      description: |
+        Alfred sử dụng Ollama LLM (qwen2.5:3b) kết hợp với context thiết bị và cảm biến.
+        Có thể điều khiển thiết bị bằng ngôn ngữ tự nhiên, hỏi về sức khỏe, etc.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  example: "Bật đèn phòng khách và kiểm tra nhiệt độ"
+                mode:
+                  type: string
+                  enum: [auto, rule, llm]
+                  default: "auto"
+                  description: "`rule` = xử lý bằng rule-based; `llm` = dùng LLM; `auto` = tự chọn"
+                context:
+                  type: object
+                  nullable: true
+                  description: Context bổ sung (optional)
+      responses:
+        "200":
+          description: Phản hồi từ Alfred
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  reply:
+                    type: string
+                    example: "Tôi đã bật đèn phòng khách. Nhiệt độ hiện tại là 27°C."
+                  actions_taken:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Đèn phòng khách: ON"]
+        "429":
+          description: Rate limit exceeded (30 req/phút)
+
+  # ================================================================
+  # ALERTS
+  # ================================================================
+  /api/alerts:
+    get:
+      tags: [alerts]
+      summary: Lấy danh sách cảnh báo
+      parameters:
+        - in: query
+          name: severity
+          schema:
+            type: string
+            enum: [normal, caution, warning, critical]
+        - in: query
+          name: is_read
+          schema:
+            type: boolean
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Danh sách cảnh báo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Alert"
+                  total:
+                    type: integer
+
+  /api/alerts/sos:
+    post:
+      tags: [alerts]
+      summary: Kích hoạt SOS khẩn cấp
+      description: Gửi email SOS đến người thân/caretaker, tùy chọn đính kèm voice note
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  maxLength: 200
+                  example: "Tôi bị ngã, cần giúp đỡ!"
+                audio:
+                  type: string
+                  format: binary
+                  description: Voice note (webm/wav/mp3, tối đa 5MB)
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  maxLength: 200
+      responses:
+        "200":
+          description: SOS đã gửi
+        "429":
+          description: Rate limited (10 req/phút)
+
+  /api/alerts/rules:
+    get:
+      tags: [alerts]
+      summary: Lấy danh sách quy tắc cảnh báo
+      responses:
+        "200":
+          description: Danh sách rules
+
+    post:
+      tags: [alerts]
+      summary: Tạo quy tắc cảnh báo mới
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sensor_type, condition, threshold]
+              properties:
+                sensor_type:
+                  type: string
+                  enum: [heart_rate, temperature, humidity, motion]
+                  example: "heart_rate"
+                condition:
+                  type: string
+                  enum: [gt, lt, gte, lte]
+                  example: "gt"
+                threshold:
+                  type: number
+                  example: 120
+                severity:
+                  type: string
+                  enum: [caution, warning, critical]
+                  default: "warning"
+
+  # ================================================================
+  # PATIENT
+  # ================================================================
+  /api/patient/profile:
+    get:
+      tags: [patient]
+      summary: Lấy hồ sơ sức khỏe bệnh nhân
+      responses:
+        "200":
+          description: Hồ sơ bệnh nhân
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  profile:
+                    $ref: "#/components/schemas/PatientProfile"
+
+    put:
+      tags: [patient]
+      summary: Cập nhật hồ sơ sức khỏe
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientProfile"
+      responses:
+        "200":
+          description: Cập nhật thành công
+
+  /api/patient/report:
+    get:
+      tags: [patient]
+      summary: Tải báo cáo sức khỏe PDF
+      parameters:
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [week, month, all]
+            default: "week"
+      responses:
+        "200":
+          description: File PDF báo cáo
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /api/patient/report/email:
+    post:
+      tags: [patient]
+      summary: Gửi báo cáo sức khỏe qua email
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  nullable: true
+                  description: "Nếu để trống, gửi đến email của profile hoặc email tài khoản"
+                period:
+                  type: string
+                  enum: [week, month, all]
+                  default: "week"
+      responses:
+        "200":
+          description: Email đã được gửi
+        "400":
+          description: Chưa cấu hình SMTP hoặc không có địa chỉ nhận
+
+  # ================================================================
+  # REMINDERS
+  # ================================================================
+  /api/reminders:
+    get:
+      tags: [reminders]
+      summary: Lấy danh sách nhắc nhở uống thuốc
+      responses:
+        "200":
+          description: Danh sách nhắc nhở
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reminder"
+
+    post:
+      tags: [reminders]
+      summary: Tạo nhắc nhở mới
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [medicine_name, schedule_time]
+              properties:
+                medicine_name:
+                  type: string
+                  example: "Metformin 500mg"
+                dosage:
+                  type: string
+                  example: "2 viên"
+                schedule_time:
+                  type: string
+                  example: "07:30"
+                days_of_week:
+                  type: string
+                  example: "1,2,3,4,5,6,7"
+                  description: "Các ngày trong tuần (1=Thứ 2, 7=Chủ nhật)"
+                note:
+                  type: string
+      responses:
+        "201":
+          description: Nhắc nhở đã tạo
+
+  /api/reminders/{id}:
+    delete:
+      tags: [reminders]
+      summary: Xóa nhắc nhở
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Xóa thành công
+
+  # ================================================================
+  # AUTOMATION
+  # ================================================================
+  /api/automation:
+    get:
+      tags: [automation]
+      summary: Lấy danh sách automation và schedules
+      responses:
+        "200":
+          description: Danh sách automations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Automation"
+
+    post:
+      tags: [automation]
+      summary: Tạo automation mới
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, trigger_type, action]
+              properties:
+                name:
+                  type: string
+                  example: "Tắt đèn 23:00"
+                trigger_type:
+                  type: string
+                  enum: [schedule, sensor, manual]
+                cron_expression:
+                  type: string
+                  example: "0 23 * * *"
+                  description: Biểu thức cron cho schedule triggers
+                action:
+                  type: object
+                  example:
+                    device_code: "den"
+                    state: "off"
+
+  /api/automation/{id}:
+    delete:
+      tags: [automation]
+      summary: Xóa automation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Xóa thành công
+
+  # ================================================================
+  # MAP
+  # ================================================================
+  /api/map/layout:
+    get:
+      tags: [map]
+      summary: Lấy dữ liệu bản đồ thiết bị 3D
+      description: Trả về layout phòng và vị trí thiết bị cho Three.js rendering
+      responses:
+        "200":
+          description: Layout map
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  floors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        floor_id:
+                          type: integer
+                        floor_name:
+                          type: string
+                        rooms:
+                          type: array
+                          items:
+                            type: object
+                  devices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                        name:
+                          type: string
+                        x:
+                          type: number
+                        y:
+                          type: number
+                        state:
+                          type: string
+
+  # ================================================================
+  # COOSPO (Heart Rate Band)
+  # ================================================================
+  /api/coospo/heartrate:
+    post:
+      tags: [coospo]
+      summary: Nhận dữ liệu nhịp tim từ vòng đeo Coospo
+      description: |
+        Endpoint nhận raw BPM từ Coospo Heart Rate Band.
+        Backend tự động phân tích anomaly bằng ML và tạo alert nếu cần.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bpm]
+              properties:
+                bpm:
+                  type: integer
+                  minimum: 30
+                  maximum: 220
+                  example: 82
+                device_id:
+                  type: string
+                  nullable: true
+                  example: "COOSPO_001"
+      responses:
+        "200":
+          description: BPM đã được ghi nhận và phân tích
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  bpm:
+                    type: integer
+                  severity:
+                    type: string
+                    enum: [normal, caution, warning, critical]
+                  alert_created:
+                    type: boolean
+
+  # ================================================================
+  # HEALTH CHECK
+  # ================================================================
+  /api/health:
+    get:
+      tags: [auth]
+      summary: Health check endpoint
+      security: []
+      responses:
+        "200":
+          description: Server đang hoạt động
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  version:
+                    type: string
+                    example: "2.0"
+
+components:
+  responses:
+    Unauthorized:
+      description: Token không hợp lệ hoặc hết hạn
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

@@ -1,0 +1,83 @@
+\chapter{CONCLUSION AND FUTURE WORK}
+
+\section{Summary of Contributions}
+
+This thesis shows that a full-stack, open-source IoT platform combining environmental sensing, physiological anomaly detection, and a tri-modal AI assistant into a unified elderly-care system at prototype scale can be designed and validated. Three research questions are addressed: integration reliability (RQ1), anomaly detection performance (RQ2), and AI interface effectiveness (RQ3). The main contributions are:
+
+\begin{enumerate}
+
+\item \textbf{Integration of heterogeneous IoT components validated.}
+The system demonstrates end-to-end reliability of an open-source stack combining an ESP32 firmware node, EMQX MQTT broker, Flask backend, and dual clients (web + Flutter mobile). A 10-trial HTTP command dispatch benchmark measured a mean latency of 33\,ms (Client\,$\to$\,Backend\,$\to$\,EMQX Cloud), with physical relay actuation confirmed in all trials (RQ1).
+
+\item \textbf{Empirical evaluation of lightweight anomaly detection for HR monitoring.}
+Two Isolation Forest configurations are tested on the same held-out test set of 100 healthy + 526 diseased patients ($n=626$, UCI Heart Disease Dataset). The benchmark model (UCI-only, 399 healthy training records, contamination~=~0.10) achieves precision~0.96, recall~0.70, F1~0.81. The evaluated configuration (399 UCI-healthy~+~1\,700 synthetic, contamination~=~0.020, 300 trees; see Table~\ref{tab:model_configs}) achieves precision~0.90, recall~0.35, F1~0.51; the lower recall reflects a contamination setting calibrated for home-monitoring distributions (mostly healthy readings), not for the 84\%-diseased UCI test cohort. In the deployed hybrid system, extreme BPM readings are caught by hard thresholds regardless of the IF score (RQ2).
+
+\item \textbf{A tri-modal, context-injected AI assistant for bilingual home automation.}
+Alfred injects live device states and sensor readings into every LLM prompt, so device-control commands work without a separate retrieval step. A structured 19-item benchmark for Rule mode achieved 19/19 correct intent-match responses (100\%) across six command categories: single-device toggle, bulk room control, mood detection, scenario detection, out-of-scope fallback, and FAQ. The benchmark also identified and corrected one word-boundary bug in the keyword guard. LLM and Gemini modes were tested through structured qualitative observation with open-ended Vietnamese and English commands (RQ3).
+
+\item \textbf{Integrated care and floor-plan management.}
+A Google Calendar-style care scheduler (activities, appointments, medicine reminders) backed by REST APIs, together with a polygon-based interactive floor-plan editor, fills a gap identified in the related-work comparison: no prior open-source system integrates all of physiological monitoring, AI assistance, care scheduling, and spatial device management.
+
+\end{enumerate}
+
+\section{Limitations}
+\label{sec:limitations_conclusion}
+
+Although the prototype meets its primary objectives, several limitations
+remain:
+
+\begin{itemize}
+    \item The deployed anomaly detection model is trained on 1,700 synthetic normal-HR samples plus all 499 UCI healthy records (target=0); UCI diseased records are excluded from training. Evaluation uses a separate 80/20 UCI split (399 train, 100 test) with no synthetic data. The held-out test set contains the remaining 100 healthy UCI records plus 526 diseased-patient records. However, resting BPM is estimated from the \texttt{thalach} (peak exercise HR) field via a fixed scaling protocol rather than being directly measured, so validation against real longitudinal resting-HR recordings is needed before clinical deployment.
+
+    \item Fall detection is not yet integrated, despite being one of the most critical safety requirements for elderly users living independently.
+
+    \item The authentication module already supports account cancellation, username updates, and password reset workflows. However, it is still at a prototype level and would benefit from stronger session revocation, one-time reset tokens, and more comprehensive audit logging.
+
+    \item The prototype uses the Flask backend over HTTP, so production deployment would require HTTPS with proper TLS termination. In the current LAN setup, the signed session token (delivered as an \texttt{HttpOnly} cookie on web and as a \texttt{Bearer} header on mobile) is not protected against untrusted network exposure.
+
+    \item The BLE heart-rate bridge (\texttt{coospo\_reader.py}) sends data to the EMQX broker via MQTT over TLS, same as the ESP32 node, so it integrates cleanly into the existing broker pipeline without extra infrastructure. The practical constraint is that the script must run continuously on any BLE-capable host within Bluetooth range of the Coospo~H6 wearable. If the host is powered off or moves out of range, heart-rate monitoring and anomaly detection stop until the connection is restored.
+
+    \item No independent usability study was conducted; evaluation was limited to a developer self-test walkthrough across four task scenarios (Section~\ref{sec:usability}). A formal study with non-technical caregivers and elderly end-users has not yet been done and remains the highest-priority item in the Phase~2 roadmap.
+    
+    \item Alfred Rule mode was evaluated with a 19-item structured benchmark (mock house, \texttt{unittest.mock}) that achieved 100\% intent-match accuracy; however, the test set was designed and evaluated by the same developer, introducing selection bias. LLM (Ollama) and Gemini modes handle open-ended natural language but have not been evaluated with a labelled dataset; accuracy under diverse real-user phrasing remains unquantified.
+
+    \item System evaluation has only been conducted with a single ESP32 node; scalability across multiple rooms and sensor nodes has not yet been assessed.
+
+\end{itemize}
+
+\section{Future Work Roadmap}
+\label{sec:future}
+
+To align implementation priorities with defense requirements and deployment
+readiness, future work is organised into three execution phases.
+
+\subsection*{Phase 1: Immediate Next Steps}
+\begin{enumerate}
+  \item \textbf{Hardware latency benchmarking}: Extend the preliminary 10-trial result reported in Table~\ref{tab:latency_record} by running a full 30-trial controlled measurement campaign of end-to-end command latency and per-segment latency (client, backend, broker, and relay actuation).
+
+  \item \textbf{Alfred LLM/Gemini utterance set expansion}: The current AI-backend latency benchmark (Section~\ref{subsec:alfred_benchmark}, Table~\ref{tab:ai_backend_latency}) covers 4 bypass utterances. Expanding to a larger, diverse utterance set (50+ items) with independent annotators would yield statistically robust pass-rate figures for Ollama and Gemini and reduce selection bias.
+
+  \item \textbf{Scale the LoRA fine-tuning dataset}: The fine-tuning experiment in Section~\ref{subsec:alfred_benchmark} used 182 hand-written examples and did not outperform the base model. Growing the dataset to several thousand human-annotated utterances (combined with real usage logs once available) is the most direct path to a measurable improvement before re-attempting deployment of a fine-tuned intent parser.
+\end{enumerate}
+
+\subsection*{Phase 2: Post-Defense Pilot Validation}
+\begin{enumerate}
+ \item \textbf{Pilot baseline dataset}: Automatic weekly model retraining via APScheduler is already implemented (\texttt{weekly\_model\_retrain}, Section~\ref{subsec:periodic_retrain}); the remaining work is accumulating sufficient real Coospo~H6 daily usage data so that the dilution schedule advances beyond the UCI-seed phase and the model can shift to a real-data-dominant training composition.
+
+ \item \textbf{Structured usability evaluation}: Conduct a pilot study with caregivers/elderly using task-completion, error-rate, and response-time metrics.
+
+ \item \textbf{Field reliability study}: Run longer-duration operation to assess stability under realistic household conditions.
+\end{enumerate}
+
+\subsection*{Phase 3: Production Hardening and Scale}
+\begin{enumerate}
+    \item \textbf{HTTPS and deployment hardening}: Deploy behind Nginx reverse
+    proxy with TLS termination, secure secrets handling, and production logging.
+    \item \textbf{Authentication and privacy hardening}: Add stronger session
+    revocation, hardened password-reset flows, audit logging, and complete DPIA.
+    \item \textbf{Scalability and multi-household support}: Stress-test with
+    multiple ESP32 nodes and concurrent users, then extend role-based
+    architecture to multi-household operation.
+    \item \textbf{Safety feature extension}: Integrate fall detection
+    (MPU-6050/ESP32-CAM options) and resilient power backup strategies.
+\end{enumerate}

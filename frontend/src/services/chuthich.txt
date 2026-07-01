@@ -1,0 +1,5 @@
+src/services/api/
+├── http.client.js        # fetch wrapper (LOW LEVEL)
+├── device.api.js         # device-related endpoints
+├── broker.api.js         # broker endpoints
+└── index.js              # export ApiClient (FACADE)

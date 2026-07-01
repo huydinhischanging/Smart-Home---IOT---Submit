@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>JWT Security Flow - Zoomable</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'neutral',
+            sequence: {
+                showSequenceNumbers: true,
+                useMaxWidth: false,
+                rightAngles: true,
+                messageFontFamily: 'Segoe UI',
+                noteFontFamily: 'Segoe UI'
+            }
+        });
+    </script>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #eceff1; overflow: hidden; }
+        .header { background: #263238; color: white; padding: 15px 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); position: absolute; top: 0; width: 100%; z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+        #diagram-container {
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            padding-top: 80px;
+        }
+        #diagram-container:active { cursor: grabbing; }
+        .status-tag { background: #4caf50; padding: 4px 10px; border-radius: 4px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <strong>JWT Authentication & Authorization Sequence</strong>
+            <div style="font-size: 11px; color: #b0bec5; margin-top: 4px;">Cuộn chuột để Phóng to • Nhấn giữ để Di chuyển</div>
+        </div>
+        <div class="status-tag">Security Verified</div>
+    </div>
+
+    <div id="diagram-container">
+        <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as 👤 User (Web/Mobile)
+    participant Nginx as 🔀 Nginx
+    participant Flask as 🐍 Flask API
+    participant JWT as 🔑 JWT Module<br/>(flask-jwt-extended)
+    participant DB as 🗄️ PostgreSQL
+
+    rect rgb(232, 245, 233)
+        Note over User,DB: 📋 ĐĂNG KÝ (Register)
+        User->>Nginx: POST /api/auth/register<br/>{username, email, password}
+        Nginx->>Flask: forward request
+        Flask->>DB: check email đã tồn tại?
+        DB-->>Flask: not found
+        Flask->>Flask: bcrypt.hash(password, salt=12)
+        Flask->>DB: INSERT user (hashed_password)
+        DB-->>Flask: user created
+        Flask-->>User: 201 {message: "registered"}
+    end
+
+    rect rgb(224, 242, 241)
+        Note over User,DB: 🔐 ĐĂNG NHẬP (Login)
+        User->>Nginx: POST /api/auth/login<br/>{email, password}
+        Nginx->>Flask: forward request
+        Flask->>DB: SELECT user WHERE email=?
+        DB-->>Flask: user row
+        Flask->>JWT: bcrypt.check(password, hash)
+        JWT-->>Flask: ✅ valid
+
+        Flask->>JWT: create_access_token(user_id, expires=15min)
+        Flask->>JWT: create_refresh_token(user_id, expires=30days)
+        Flask->>DB: store refresh_token hash (revocation list)
+        Flask-->>User: 200 {<br/>  access_token: "eyJ...",<br/>  refresh_token: "eyJ...",<br/>  expires_in: 900<br/>}
+        User->>User: lưu tokens vào storage
+    end
+
+    rect rgb(243, 229, 245)
+        Note over User,DB: 🛡️ GỌI API BẢO MẬT (Protected Request)
+        User->>Nginx: GET /api/devices<br/>Authorization: Bearer eyJ...
+        Nginx->>Flask: forward + header
+        Flask->>JWT: verify_jwt_in_request()
+        JWT->>JWT: decode & check (exp, iss, alg=HS256)
+        JWT-->>Flask: ✅ identity = user_id
+        Flask->>DB: SELECT devices WHERE user_id=?
+        DB-->>Flask: device list
+        Flask-->>User: 200 [{device_code, status...}]
+    end
+
+    rect rgb(255, 243, 224)
+        Note over User,DB: ♻️ LÀM MỚI TOKEN (Refresh)
+        User->>Flask: POST /api/auth/refresh<br/>Auth: Bearer refresh_token
+        Flask->>JWT: verify refresh token
+        JWT-->>Flask: ✅ valid, not revoked
+        Flask->>DB: check revocation list
+        DB-->>Flask: not revoked
+        Flask->>JWT: create_access_token(user_id)
+        Flask-->>User: 200 {access_token: "new_eyJ..."}
+    end
+
+    rect rgb(255, 235, 238)
+        Note over User,DB: 🚪 ĐĂNG XUẤT (Logout)
+        User->>Flask: POST /api/auth/logout<br/>Auth: Bearer refresh_token
+        Flask->>DB: INSERT revoked_tokens (jti, expires_at)
+        DB-->>Flask: ok
+        Flask-->>User: 200 {message: "logged out"}
+        Note over User: xoá tokens khỏi storage
+    end
+        </pre>
+    </div>
+
+    <!-- Script hỗ trợ Zoom & Pan -->
+    <script src="https://bumbu.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const svgElement = document.querySelector('#diagram-container svg');
+                if (svgElement) {
+                    svgPanZoom(svgElement, {
+                        zoomEnabled: true,
+                        controlIconsEnabled: true,
+                        fit: true, center: true,
+                        minZoom: 0.1, maxZoom: 8
+                    });
+                }
+            }, 1200);
+        });
+    </script>
+</body>
+</html>

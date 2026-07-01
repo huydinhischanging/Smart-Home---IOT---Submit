@@ -217,11 +217,18 @@ class TestFloorLayout:
         client.post(
             "/api/map/layout/1",
             headers=_auth(token),
-            json={"rooms": ["Room A", "Room B"], "map_cache": {"d1": {"x": 5, "y": 5}}},
+            json={
+                "rooms": [
+                    {"name": "Room A", "points": [{"x": 0, "y": 0}]},
+                    {"name": "Room B", "points": [{"x": 1, "y": 1}]},
+                ],
+                "map_cache": {"d1": {"x": 5, "y": 5}},
+            },
         )
         resp = client.get("/api/map/layout/1", headers=_auth(token))
         data = resp.get_json()
-        assert "Room A" in data["data"]["rooms"]
+        room_names = [r.get("name") for r in data["data"]["rooms"] if isinstance(r, dict)]
+        assert "Room A" in room_names
         assert "d1" in data["data"]["map_cache"]
 
 

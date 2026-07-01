@@ -1,12 +1,10 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:math' as math;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../core/bc.dart';
-import '../core/cfg_provider.dart';
-import '../core/auth_provider.dart';
+import '../modules/sensor/sensor_provider.dart';
 import '../widgets/common_widgets.dart';
 
 class HealthScreen extends ConsumerStatefulWidget {
@@ -16,58 +14,36 @@ class HealthScreen extends ConsumerStatefulWidget {
 }
 
 class _HealthState extends ConsumerState<HealthScreen> {
-  List<Map<String, dynamic>> _records = [];
-  Map<String, dynamic>? _summary;
-  bool _loading = true;
-  String? _err;
-
   @override
   void initState() {
     super.initState();
-    _load();
+    Future.microtask(() async {
+      final n = ref.read(sensorProvider.notifier);
+      await Future.wait([n.loadHrRecords(), n.loadHrvSummary()]);
+    });
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _err = null; });
-    final base  = ref.read(cfgProvider);
-    final auth  = ref.read(authProvider);
-
-    if (!auth.isLoggedIn) {
-      setState(() { _loading = false; _err = 'Login required to view health data.'; });
-      return;
-    }
-
-    try {
-      final r = await http.get(
-        Uri.parse('$base/api/patient/hr-records?limit=100'),
-        headers: {
-          'Content-Type': 'application/json',
-          ...auth.bearerHeader,
-        },
-      ).timeout(const Duration(seconds: 12));
-
-      if (r.statusCode == 200) {
-        final data = jsonDecode(r.body);
-        final raw = data['records'];
-        _records = (raw is List ? raw : [])
-            .cast<Map<String, dynamic>>()
-            .reversed
-            .toList();  // oldest first for chart
-        _summary = data['summary'] as Map<String, dynamic>?;
-        _err = null;
-      } else if (r.statusCode == 401) {
-        _err = 'Session expired. Please log out and log in again.';
-      } else {
-        _err = 'Server error (${r.statusCode}).';
-      }
-    } catch (e) {
-      _err = 'Cannot reach server. Is backend running?';
-    }
-    if (mounted) setState(() => _loading = false);
+    final n = ref.read(sensorProvider.notifier);
+    await Future.wait([n.loadHrRecords(), n.loadHrvSummary()]);
   }
 
   @override
-  Widget build(BuildContext ctx) => Scaffold(
+  Widget build(BuildContext ctx) {
+    final sensor = ref.watch(sensorProvider);
+    final records = sensor.hrRecords
+        .map((record) => <String, dynamic>{
+              'bpm': record.bpm,
+              'severity': record.severity,
+              'mood': record.mood,
+              'risk': record.risk,
+              'recorded_at': record.recordedAt,
+            })
+        .toList()
+        .reversed
+        .toList();
+
+    return Scaffold(
     backgroundColor: Colors.transparent,
     body: SafeArea(child: Column(children: [
       // ── header ────────────────────────────
@@ -107,37 +83,46 @@ class _HealthState extends ConsumerState<HealthScreen> {
 
       // ── body ──────────────────────────────
       Expanded(
-        child: _loading
+        child: sensor.loading
           ? const BcLoader()
           : RefreshIndicator(
               color: BC.red, backgroundColor: BC.panel,
               onRefresh: _load,
-              child: _err != null
+              child: sensor.error != null
                 ? ListView(children: [
                     const SizedBox(height: 20),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: BcErrBanner(msg: _err!),
+                      child: BcErrBanner(msg: sensor.error!),
                     ),
                   ])
-                : _HealthBody(records: _records, summary: _summary),
+                : _HealthBody(records: records, summary: sensor.summary, hrvSummary: sensor.hrvSummary),
             ),
       ),
     ])),
   );
+  }
 }
 
 class _HealthBody extends StatelessWidget {
   final List<Map<String, dynamic>> records;
   final Map<String, dynamic>? summary;
-  const _HealthBody({required this.records, required this.summary});
+  final Map<String, dynamic>? hrvSummary;
+  const _HealthBody({required this.records, required this.summary, this.hrvSummary});
+
+  // records is newest-first (reversed in _HealthState)
+  Map<String, dynamic>? get _latest => records.isNotEmpty ? records.first : null;
 
   @override
   Widget build(BuildContext ctx) => ListView(
     padding: const EdgeInsets.fromLTRB(14, 14, 14, 110),
     children: [
-      if (summary != null) ...[
-        _SummaryCard(summary: summary!),
+      // ── Live BPM hero — most prominent element ──
+      _LiveBpmHero(latest: _latest),
+      const SizedBox(height: 14),
+      // ── Vitals summary — compute from records ──
+      if (records.isNotEmpty) ...[
+        _SummaryCard(summary: summary, records: records),
         const SizedBox(height: 14),
       ],
       if (records.length >= 2) ...[
@@ -146,11 +131,16 @@ class _HealthBody extends StatelessWidget {
       ],
       _SeverityBreakdown(summary: summary),
       const SizedBox(height: 14),
+      if (hrvSummary != null) ...[
+        _HrvCard(hrv: hrvSummary),
+        const SizedBox(height: 14),
+      ],
       BcSectionHeader(label: 'RECENT READINGS', count: records.length),
       const SizedBox(height: 10),
       if (records.isEmpty)
         const _NoData(),
-      ...records.reversed.take(40).map((rec) => Padding(
+      // Show newest first
+      ...records.take(40).map((rec) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: _RecordRow(rec: rec),
       )),
@@ -158,20 +148,208 @@ class _HealthBody extends StatelessWidget {
   );
 }
 
-// ── Summary stats card ─────────────────────
-class _SummaryCard extends StatelessWidget {
-  final Map<String, dynamic> summary;
-  const _SummaryCard({required this.summary});
+// ── Live BPM hero card ─────────────────────
+class _LiveBpmHero extends StatefulWidget {
+  final Map<String, dynamic>? latest;
+  const _LiveBpmHero({required this.latest});
+  @override
+  State<_LiveBpmHero> createState() => _LiveBpmHeroState();
+}
+
+class _LiveBpmHeroState extends State<_LiveBpmHero>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _scale = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(parent: _pulse, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  Color _sevColor(String? sev) {
+    switch (sev) {
+      case 'critical': return BC.red;
+      case 'warning':  return BC.gold;
+      case 'caution':  return const Color(0xFFFF8844);
+      default:         return BC.green;
+    }
+  }
 
   @override
   Widget build(BuildContext ctx) {
-    final avg     = summary['avg_bpm'];
-    final min     = summary['min_bpm'];
-    final max     = summary['max_bpm'];
-    final count   = summary['count'];
-    final normal  = summary['normal_rate_percent'];
-    final avgStr  = avg is num ? avg.toStringAsFixed(1) : '--';
-    final normStr = normal is num ? '${normal.toStringAsFixed(1)}%' : '--';
+    final latest = widget.latest;
+    final bpm    = latest != null ? latest['bpm'] : null;
+    final sev    = latest?['severity']?.toString();
+    final color  = _sevColor(sev);
+    final bpmStr = bpm != null ? '$bpm' : '--';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: 0.08),
+            BC.panel.withValues(alpha: 0.95),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.12), blurRadius: 24, spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(children: [
+        // Big BPM number
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              AnimatedBuilder(
+                animation: _scale,
+                builder: (_, __) => Transform.scale(
+                  scale: _scale.value,
+                  child: Container(
+                    width: 10, height: 10,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: latest != null ? color : BC.txtDim,
+                      boxShadow: latest != null
+                        ? [BoxShadow(color: color.withValues(alpha: 0.7), blurRadius: 8)]
+                        : null,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                latest != null ? 'LIVE BPM' : 'WAITING...',
+                style: TextStyle(
+                  fontFamily: 'monospace', fontSize: 9, letterSpacing: 2,
+                  color: latest != null ? color : BC.txtDim,
+                ),
+              ),
+            ]),
+            const SizedBox(height: 6),
+            Text(
+              bpmStr,
+              style: TextStyle(
+                fontFamily: 'monospace', fontSize: 56,
+                color: color, fontWeight: FontWeight.bold, height: 1.0,
+                shadows: latest != null
+                  ? [Shadow(color: color.withValues(alpha: 0.5), blurRadius: 16)]
+                  : null,
+              ),
+            ),
+            const SizedBox(height: 2),
+            const Text('BEATS PER MINUTE', style: TextStyle(
+              fontFamily: 'monospace', fontSize: 8,
+              color: BC.txtDim, letterSpacing: 2,
+            )),
+          ]),
+        ),
+        // Severity badge + time
+        if (latest != null)
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: color.withValues(alpha: 0.35)),
+              ),
+              child: Text(
+                (sev ?? 'normal').toUpperCase(),
+                style: TextStyle(
+                  fontFamily: 'monospace', fontSize: 9,
+                  color: color, letterSpacing: 1,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _formatTime(latest['recorded_at']?.toString() ?? ''),
+              style: const TextStyle(
+                fontFamily: 'monospace', fontSize: 9, color: BC.txtDim,
+              ),
+            ),
+          ]),
+      ]),
+    );
+  }
+
+  String _formatTime(String raw) {
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      return DateFormat('HH:mm  dd/MM').format(dt);
+    } catch (_) { return raw; }
+  }
+}
+
+// ── Summary stats card ─────────────────────
+class _SummaryCard extends StatelessWidget {
+  final Map<String, dynamic>? summary;
+  final List<Map<String, dynamic>> records;
+  const _SummaryCard({required this.summary, required this.records});
+
+  // Compute stats from actual records (authoritative — handles realtime additions)
+  double? get _avg {
+    if (records.isEmpty) return null;
+    final bpms = records.map((r) => (r['bpm'] as num?)?.toDouble() ?? 0.0).toList();
+    return bpms.reduce((a, b) => a + b) / bpms.length;
+  }
+
+  int? get _min {
+    if (records.isEmpty) return null;
+    return records
+        .map((r) => (r['bpm'] as num?)?.toInt() ?? 9999)
+        .reduce((a, b) => math.min(a, b));
+  }
+
+  int? get _max {
+    if (records.isEmpty) return null;
+    return records
+        .map((r) => (r['bpm'] as num?)?.toInt() ?? 0)
+        .reduce((a, b) => math.max(a, b));
+  }
+
+  double? get _normalRate {
+    if (records.isEmpty) return null;
+    // Use API value if summary is fresh (count matches), else compute
+    final apiRate = summary?['normal_rate_percent'];
+    final apiCount = summary?['count'];
+    if (apiRate is num && apiCount is num && apiCount == records.length) {
+      return apiRate.toDouble();
+    }
+    final normalCount = records.where((r) => r['severity'] == 'normal').length;
+    return normalCount / records.length * 100;
+  }
+
+  @override
+  Widget build(BuildContext ctx) {
+    final count   = records.length;
+    final avg     = _avg;
+    final minBpm  = _min;
+    final maxBpm  = _max;
+    final normal  = _normalRate;
+    final avgStr  = avg != null ? avg.toStringAsFixed(1) : '--';
+    final minStr  = minBpm != null ? '$minBpm' : '--';
+    final maxStr  = maxBpm != null ? '$maxBpm' : '--';
+    final normStr = normal != null ? '${normal.toStringAsFixed(1)}%' : '--';
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -214,13 +392,13 @@ class _SummaryCard extends StatelessWidget {
         // Ring gauge for avg BPM
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           BcRingGauge(
-            value: avg is num ? (avg.clamp(0, 200) / 200.0) : 0,
+            value: avg != null ? (avg.clamp(0.0, 200.0) / 200.0) : 0,
             centerVal: avgStr,
             centerLabel: 'AVG BPM',
             color: bcSeverityColor(
-              avg is num && avg > 120
+              avg != null && avg > 120
                   ? 'critical'
-                  : avg is num && avg > 100
+                  : avg != null && avg > 100
                       ? 'warning'
                       : 'info',
             ),
@@ -231,9 +409,9 @@ class _SummaryCard extends StatelessWidget {
         Row(children: [
           _VitalChip(label: 'AVG BPM', val: avgStr, color: BC.cyan),
           const SizedBox(width: 10),
-          _VitalChip(label: 'MIN', val: '$min', color: BC.green),
+          _VitalChip(label: 'MIN', val: minStr, color: BC.green),
           const SizedBox(width: 10),
-          _VitalChip(label: 'MAX', val: '$max', color: BC.gold),
+          _VitalChip(label: 'MAX', val: maxStr, color: BC.gold),
           const SizedBox(width: 10),
           _VitalChip(label: 'NORMAL', val: normStr, color: BC.green),
         ]),
@@ -466,6 +644,140 @@ class _SeverityBreakdown extends StatelessWidget {
   }
 }
 
+// ── HRV Analysis card ──────────────────────
+class _HrvCard extends StatelessWidget {
+  final Map<String, dynamic>? hrv;
+  const _HrvCard({required this.hrv});
+
+  @override
+  Widget build(BuildContext ctx) {
+    if (hrv == null) return const SizedBox.shrink();
+    final rmssd = (hrv!['rmssd'] as num?)?.toStringAsFixed(1) ?? '--';
+    final sdnn  = (hrv!['sdnn']  as num?)?.toStringAsFixed(1) ?? '--';
+    final pnn50 = (hrv!['pnn50'] as num?)?.toStringAsFixed(1) ?? '--';
+    final lowPct = (hrv!['low_hrv_rate_pct'] as num?)?.toStringAsFixed(1);
+    final risk   = hrv!['risk_distribution'] as Map<String, dynamic>? ?? {};
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: BC.cyan.withValues(alpha: 0.25)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: [BC.cyan.withValues(alpha: 0.07), BC.panel.withValues(alpha: 0.92)],
+        ),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: BC.cyan.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: BC.cyan.withValues(alpha: 0.30)),
+            ),
+            child: const Text('HRV ANALYSIS', style: TextStyle(
+              fontSize: 9, letterSpacing: 2,
+              color: BC.cyan, fontWeight: FontWeight.bold,
+            )),
+          ),
+          if (lowPct != null) ...[
+            const Spacer(),
+            Text('$lowPct% low HRV', style: const TextStyle(
+              fontFamily: 'monospace', fontSize: 9, color: BC.txtDim,
+            )),
+          ],
+        ]),
+        const SizedBox(height: 14),
+        Row(children: [
+          _HrvMetric(label: 'RMSSD', val: rmssd, unit: 'ms', color: BC.cyan),
+          const SizedBox(width: 10),
+          _HrvMetric(label: 'SDNN',  val: sdnn,  unit: 'ms', color: BC.green),
+          const SizedBox(width: 10),
+          _HrvMetric(label: 'PNN50', val: pnn50, unit: '%',  color: BC.gold),
+        ]),
+        if (risk.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          const Text('RISK DISTRIBUTION', style: TextStyle(
+            fontFamily: 'monospace', fontSize: 8,
+            color: BC.txtDim, letterSpacing: 2,
+          )),
+          const SizedBox(height: 8),
+          Row(children: [
+            _HrvRiskBar(label: 'LOW',  count: risk['low']    ?? 0, color: BC.green),
+            const SizedBox(width: 6),
+            _HrvRiskBar(label: 'MED',  count: risk['medium'] ?? 0, color: BC.gold),
+            const SizedBox(width: 6),
+            _HrvRiskBar(label: 'HIGH', count: risk['high']   ?? 0, color: BC.red),
+          ]),
+        ],
+      ]),
+    );
+  }
+}
+
+class _HrvMetric extends StatelessWidget {
+  final String label, val, unit;
+  final Color color;
+  const _HrvMetric({required this.label, required this.val, required this.unit, required this.color});
+
+  @override
+  Widget build(BuildContext ctx) => Expanded(child: Container(
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: color.withValues(alpha: 0.22)),
+    ),
+    child: Column(children: [
+      RichText(text: TextSpan(children: [
+        TextSpan(text: val, style: TextStyle(
+          fontFamily: 'monospace', fontSize: 18, color: color,
+          fontWeight: FontWeight.bold,
+          shadows: [Shadow(color: color.withValues(alpha: 0.4), blurRadius: 6)],
+        )),
+        TextSpan(text: ' $unit', style: const TextStyle(
+          fontFamily: 'monospace', fontSize: 9, color: BC.txtDim,
+        )),
+      ])),
+      const SizedBox(height: 4),
+      Text(label, style: const TextStyle(
+        fontFamily: 'monospace', fontSize: 7,
+        color: BC.txtDim, letterSpacing: 1.5,
+      )),
+    ]),
+  ));
+}
+
+class _HrvRiskBar extends StatelessWidget {
+  final String label;
+  final dynamic count;
+  final Color color;
+  const _HrvRiskBar({required this.label, required this.count, required this.color});
+
+  @override
+  Widget build(BuildContext ctx) => Expanded(child: Container(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: color.withValues(alpha: 0.25)),
+    ),
+    child: Column(children: [
+      Text('$count', style: TextStyle(
+        fontFamily: 'monospace', fontSize: 16, color: color,
+        fontWeight: FontWeight.bold,
+      )),
+      const SizedBox(height: 3),
+      Text(label, style: const TextStyle(
+        fontFamily: 'monospace', fontSize: 7,
+        color: BC.txtDim, letterSpacing: 1,
+      )),
+    ]),
+  ));
+}
+
 // ── Single HR record row ───────────────────
 class _RecordRow extends StatelessWidget {
   final Map<String, dynamic> rec;
@@ -480,8 +792,7 @@ class _RecordRow extends StatelessWidget {
     }
   }
 
-  String _formatTime(String? raw) {
-    if (raw == null) return '--';
+  String _formatTime(String raw) {
     try {
       final dt = DateTime.parse(raw).toLocal();
       return DateFormat('HH:mm  dd/MM').format(dt);
@@ -495,7 +806,7 @@ class _RecordRow extends StatelessWidget {
     final color = _sevColor;
     final bpm   = rec['bpm'];
     final sev   = (rec['severity']?.toString() ?? 'normal').toUpperCase();
-    final time  = _formatTime(rec['recorded_at']?.toString());
+    final time  = _formatTime(rec['recorded_at']?.toString() ?? '');
     final mood  = rec['mood']?.toString();
     final risk  = rec['risk']?.toString();
 

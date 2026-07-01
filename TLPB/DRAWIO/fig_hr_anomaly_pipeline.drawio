@@ -1,0 +1,154 @@
+<mxGraphModel dx="2913" dy="1515" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1200" pageHeight="1450" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontStyle=1;fontSize=19;" value="Heart Rate Anomaly Detection — Training &amp; Inference Pipeline" vertex="1">
+      <mxGeometry height="32" width="1000" x="100" y="10" as="geometry" />
+    </mxCell>
+    <mxCell id="z_data" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=17;fontStyle=1;align=center;verticalAlign=top;spacingTop=8;" value="1. TRAINING DATA — normal HR samples only" vertex="1">
+      <mxGeometry height="163" width="961" x="113" y="69" as="geometry" />
+    </mxCell>
+    <mxCell id="d_coospo" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e4d78;strokeColor=#1e4d78;fontColor=#ffffff;fontSize=15;align=center;verticalAlign=middle;" value="&lt;b&gt;Coospo H6&lt;/b&gt; (Real IoT data)&lt;br&gt;HR readings from PostgreSQL DB&lt;br&gt;pulled weekly by DatasetBuilder" vertex="1">
+      <mxGeometry height="90" width="265" x="146" y="115.5" as="geometry" />
+    </mxCell>
+    <mxCell id="d_uci" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6821e;strokeColor=#cc6600;fontColor=#ffffff;fontSize=15;align=center;verticalAlign=middle;" value="&lt;b&gt;UCI Heart Disease&lt;/b&gt; (499 healthy)&lt;br&gt;thalach × U(0.55, 0.65) → resting HR&lt;br&gt;clinical labels — target == 0 only" vertex="1">
+      <mxGeometry height="90" width="285" x="455" y="115" as="geometry" />
+    </mxCell>
+    <mxCell id="d_synth" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=15;align=center;verticalAlign=middle;" value="&lt;b&gt;Synthetic Normal HR&lt;/b&gt; (1,700 samples)&lt;br&gt;Daytime: 60–91 bpm · Night: 50–74 bpm&lt;br&gt;Night defined as hour ≥ 20 or hour ≤ 6" vertex="1">
+      <mxGeometry height="90" width="275" x="784" y="112" as="geometry" />
+    </mxCell>
+    <mxCell id="z_train" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=17;fontStyle=1;align=center;verticalAlign=top;spacingTop=8;" value="2. TRAINING — Every Sunday 03:00 ICT (APScheduler: weekly_model_retrain)" vertex="1">
+      <mxGeometry height="328" width="819" x="156" y="274" as="geometry" />
+    </mxCell>
+    <mxCell id="t_merge" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=15;align=center;verticalAlign=middle;" value="&lt;b&gt;Merge &amp; extract heart_rate column&lt;/b&gt;&lt;br&gt;pd.concat() → 2,199 normal HR values&lt;br&gt;(1,700 synthetic + 499 UCI healthy + real IoT readings)" vertex="1">
+      <mxGeometry height="59" width="400" x="391" y="371" as="geometry" />
+    </mxCell>
+    <mxCell id="t_scaler" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=15;align=center;verticalAlign=middle;" value="&lt;b&gt;StandardScaler.fit(heart_rate)&lt;/b&gt;&lt;br&gt;learn mean &amp; std of normal HR&lt;br&gt;→ save anomaly_hr_scaler.pkl" vertex="1">
+      <mxGeometry height="87" width="224" x="187" y="478" as="geometry" />
+    </mxCell>
+    <mxCell id="t_isoforest" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=15;align=center;verticalAlign=middle;" value="&lt;b&gt;IsolationForest.fit(scaled_hr)&lt;/b&gt;&lt;br&gt;contamination = 0.020 · n_estimators = 300&lt;br&gt;→ save anomaly_model.pkl" vertex="1">
+      <mxGeometry height="74" width="305" x="663" y="478" as="geometry" />
+    </mxCell>
+    <mxCell id="z_artifacts" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=17;fontStyle=1;align=center;verticalAlign=top;spacingTop=8;" value="3. MODEL ARTIFACTS" vertex="1">
+      <mxGeometry height="107" width="660" x="231" y="626" as="geometry" />
+    </mxCell>
+    <mxCell id="a_scaler" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#555555;fontSize=17;fontStyle=1;align=center;verticalAlign=middle;" value="anomaly_hr_scaler.pkl" vertex="1">
+      <mxGeometry height="55" width="222" x="253" y="667" as="geometry" />
+    </mxCell>
+    <mxCell id="a_model" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#555555;fontSize=17;fontStyle=1;align=center;verticalAlign=middle;" value="anomaly_model.pkl" vertex="1">
+      <mxGeometry height="55" width="215" x="661" y="661" as="geometry" />
+    </mxCell>
+    <mxCell id="z_infer" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=17;fontStyle=1;align=center;verticalAlign=top;spacingTop=8;" value="4. REAL-TIME INFERENCE — on every incoming BPM" vertex="1">
+      <mxGeometry height="398" width="1104" x="61" y="766" as="geometry" />
+    </mxCell>
+    <mxCell id="i_bpm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e4d78;strokeColor=#1e4d78;fontColor=#ffffff;fontSize=15;align=center;verticalAlign=middle;" value="&amp;nbsp;&lt;b&gt;New BPM&lt;/b&gt;&lt;br&gt;Coospo H6 → MQTT → Flask" vertex="1">
+      <mxGeometry height="75" width="200" x="104" y="820" as="geometry" />
+    </mxCell>
+    <mxCell id="i_rule" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=15;align=center;verticalAlign=middle;" value="&lt;b&gt;Rule-based Check&lt;/b&gt;&lt;br&gt;≥ 130 → Emergency&lt;br&gt;≥ 100 → Warning High&lt;br&gt;&lt; 50 → Warning Low" vertex="1">
+      <mxGeometry height="145" width="195" x="270" y="910" as="geometry" />
+    </mxCell>
+    <mxCell id="i_scale" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=15;align=center;verticalAlign=middle;" value="&lt;b&gt;anomaly_hr_scaler&lt;/b&gt;&lt;br&gt;transform(bpm)" vertex="1">
+      <mxGeometry height="65" width="200" x="520" y="945" as="geometry" />
+    </mxCell>
+    <mxCell id="i_predict" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=15;align=center;verticalAlign=middle;" value="&lt;b&gt;anomaly_model&lt;/b&gt;&lt;br&gt;predict(scaled_hr)&lt;br&gt;−1 = anomaly · +1 = normal" vertex="1">
+      <mxGeometry height="85" width="220" x="775" y="935" as="geometry" />
+    </mxCell>
+    <mxCell id="i_risk" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=15;align=center;verticalAlign=middle;" value="&lt;b&gt;Risk Classification&lt;/b&gt;&lt;br&gt;Normal · Caution&lt;br&gt;Warning · Critical" vertex="1">
+      <mxGeometry height="80" width="125" x="1023" y="865" as="geometry" />
+    </mxCell>
+    <mxCell id="i_hrv" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=15;align=center;verticalAlign=middle;" value="&lt;b&gt;HRV Analyzer&lt;/b&gt; (parallel)&lt;br&gt;RMSSD · SDNN · pNN50&lt;br&gt;60-reading sliding window" vertex="1">
+      <mxGeometry height="85" width="230" x="512" y="1037" as="geometry" />
+    </mxCell>
+    <mxCell id="i_alert" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6821e;fontSize=15;align=center;verticalAlign=middle;" value="🔔 &lt;b&gt;Alert + Dashboard&lt;/b&gt;&lt;br&gt;Socket.IO → Frontend&lt;br&gt;Write to DB" vertex="1">
+      <mxGeometry height="73" width="198" x="845" y="1043" as="geometry" />
+    </mxCell>
+    <mxCell id="e_c_m" edge="1" parent="1" source="d_coospo" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="t_merge">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="278" y="269" />
+          <mxPoint x="278" y="377" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_u_m" edge="1" parent="1" source="d_uci" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="t_merge">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="595" y="231" />
+          <mxPoint x="595" y="231" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_s_m" edge="1" parent="1" source="d_synth" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="t_merge">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="922" y="377" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_m_sc" edge="1" parent="1" source="t_merge" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="t_scaler">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="534" y="449" />
+          <mxPoint x="288" y="449" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_m_if" edge="1" parent="1" source="t_merge" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="t_isoforest">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="631" y="445" />
+          <mxPoint x="816" y="445" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_sc_if" edge="1" parent="1" source="t_scaler" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="t_isoforest" value="scaled HR">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="616" y="522" />
+          <mxPoint x="616" y="522" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_sc_as" edge="1" parent="1" source="t_scaler" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="a_scaler">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_if_am" edge="1" parent="1" source="t_isoforest" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="a_model">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_as_isc" edge="1" parent="1" source="a_scaler" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;dashed=1;dashPattern=6 3;" target="i_scale" value="load at startup">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_am_ipr" edge="1" parent="1" source="a_model" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;dashed=1;dashPattern=6 3;" target="i_predict" value="load at startup">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_bpm_rule" edge="1" parent="1" source="i_bpm" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="i_rule">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_rule_scale" edge="1" parent="1" source="i_rule" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="i_scale" value="within range">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_scale_pred" edge="1" parent="1" source="i_scale" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="i_predict">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_pred_risk" edge="1" parent="1" source="i_predict" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="i_risk">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_rule_hrv" edge="1" parent="1" source="i_rule" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="i_hrv" value="breach">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="368" y="1094" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_risk_alert" edge="1" parent="1" source="i_risk" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="i_alert">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1102" y="1080" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_hrv_alert" edge="1" parent="1" source="i_hrv" style="edgeStyle=orthogonalEdgeStyle;fontSize=15;" target="i_alert">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>

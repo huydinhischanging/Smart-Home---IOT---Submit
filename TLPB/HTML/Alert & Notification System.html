@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Alert & Notification System</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'dark',
+            flowchart: { useMaxWidth: false, htmlLabels: true, curve: 'stepBefore' },
+            sequence: { useMaxWidth: false, actorMargin: 50, boxMargin: 10 }
+        });
+    </script>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #121212; color: #e0e0e0; overflow: hidden; }
+        .header { background: #1f1f1f; padding: 15px 25px; border-bottom: 1px solid #333; position: absolute; top: 0; width: 100%; z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+        .container { width: 100vw; height: 100vh; cursor: grab; padding-top: 100px; display: flex; flex-direction: column; align-items: center; overflow: auto; }
+        .badge { background: #cf6679; color: black; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .zoom-info { font-size: 11px; color: #999; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <strong>Intelligent Alert & Notification Engine</strong>
+            <div class="zoom-info">Sử dụng chuột để Phóng to/Thu nhỏ và Di chuyển</div>
+        </div>
+        <div class="badge">Critical Infrastructure</div>
+    </div>
+
+    <div class="container" id="viewport">
+        <!-- Flowchart: Logic xử lý Alert -->
+        <div style="color: #bb86fc; font-weight: bold; margin-bottom: 20px;">[1] ALERT PROCESSING PIPELINE</div>
+        <pre class="mermaid">
+flowchart TD
+    subgraph Sources["⚡ Trigger Sources"]
+        S1["🫀 HRV Anomaly\n(Stress Detected)"]
+        S2["💊 Medicine Schedule\n(Time to take)"]
+        S3["🌡️ Environment\n(Temp/Light Alert)"]
+        S4["📵 Device Offline\n(ESP32 Heartbeat)"]
+    end
+
+    subgraph Scheduler["⏱️ APScheduler Service"]
+        JOB["Cron Jobs\n(1m - 5m intervals)"]
+    end
+
+    subgraph Logic["🧠 Processing & Cooldown"]
+        EVAL{"Cooldown Check\n(Last 15 mins?)"}
+        CREATE["Create Alert Object\n(Severity/Type)"]
+        SAVE[("INSERT to\nPostgreSQL")]
+    end
+
+    subgraph Delivery["📤 Multi-Channel Delivery"]
+        SIO["Socket.IO\n(Real-time Web/App)"]
+        FCM["Firebase (FCM)\n(Push Notification)"]
+    end
+
+    S1 & S2 & S3 & S4 --> JOB
+    JOB --> EVAL
+    EVAL -->|"❌ Spam"| SKIP["Skip Notification"]
+    EVAL -->|"✅ New"| CREATE
+    CREATE --> SAVE
+    SAVE --> SIO & FCM
+    SIO -->|"Emit event"| WEB["📱 Client Active"]
+    FCM -->|"Push"| BG["📴 Background App"]
+
+    style Sources fill:#b00020,stroke:#fff
+    style Scheduler fill:#3700b3,stroke:#fff
+    style Logic fill:#03dac6,stroke:black,color:black
+    style Delivery fill:#cf6679,stroke:black,color:black
+        </pre>
+
+        <div style="margin: 60px 0; width: 80%; border-top: 1px dashed #444;"></div>
+
+        <!-- Sequence Diagram: Luồng dữ liệu thực tế -->
+        <div style="color: #bb86fc; font-weight: bold; margin-bottom: 20px;">[2] REAL-TIME ALERT SEQUENCE</div>
+        <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant SCHED as ⏱️ APScheduler
+    participant UC as 🧠 AlertUseCase
+    participant DB as 🗄️ PostgreSQL
+    participant SIO as 🔌 Socket.IO
+    participant APP as 📱 Flutter App
+
+    Note over SCHED: Periodic Check (Every 5 mins)
+
+    SCHED->>UC: check_hrv_anomaly(user_id)
+    UC->>DB: SELECT latest HRV readings
+    DB-->>UC: {rmssd: 18, status: STRESS}
+
+    UC->>DB: SELECT recent alerts (Cooldown check)
+    DB-->>UC: [] (Empty - No recent alerts)
+
+    UC->>DB: INSERT INTO alerts (status='unread')
+    DB-->>UC: alert_id: 42
+
+    UC->>SIO: emit('new_alert', payload)
+    SIO-->>APP: [Socket.IO] New Alert Received!
+
+    APP->>APP: Notify User (Vibrate/Sound)
+    
+    Note over APP: User Interaction
+    APP->>DB: PATCH /api/alerts/42/read
+    DB-->>APP: 200 OK (is_read: true)
+        </pre>
+    </div>
+
+    <script src="https://bumbu.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const svgs = document.querySelectorAll('svg');
+                svgs.forEach(svg => {
+                    svgPanZoom(svg, {
+                        zoomEnabled: true,
+                        controlIconsEnabled: true,
+                        fit: false, center: true,
+                        minZoom: 0.2, maxZoom: 4
+                    });
+                });
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

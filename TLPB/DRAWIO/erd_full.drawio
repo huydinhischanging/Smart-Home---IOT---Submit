@@ -1,0 +1,308 @@
+<mxfile host="app.diagrams.net" version="24.0.0">
+  <diagram name="ERD Full" id="erd-full">
+    <mxGraphModel dx="1500" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1800" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Section labels -->
+        <mxCell id="g_auth"   value="AUTH"        style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=15;fontStyle=1;fontColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="30"   y="20"  width="80"  height="20" as="geometry"/></mxCell>
+        <mxCell id="g_health" value="HEALTH"      style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=15;fontStyle=1;fontColor=#82b366;" vertex="1" parent="1"><mxGeometry x="30"   y="286" width="90"  height="20" as="geometry"/></mxCell>
+        <mxCell id="g_device" value="DEVICE"      style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=15;fontStyle=1;fontColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="30"   y="554" width="90"  height="20" as="geometry"/></mxCell>
+        <mxCell id="g_alert"  value="ALERT / LOG" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=15;fontStyle=1;fontColor=#b85450;" vertex="1" parent="1"><mxGeometry x="1215" y="20"  width="130" height="20" as="geometry"/></mxCell>
+
+        <!-- ══════════════════════════════════════════
+             users  (x=30, y=44, w=255, h=198)
+        ══════════════════════════════════════════ -->
+        <mxCell id="t_users" value="users" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="30" y="44" width="255" height="198" as="geometry"/>
+        </mxCell>
+        <mxCell id="u1" value="PK  id"                    style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_users"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="u2" value="username"                  style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_users"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="u3" value="email"                     style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_users"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="u4" value="password"                  style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_users"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="u5" value="role  (admin / user / guest)" style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_users"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="u6" value="is_active"                 style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_users"><mxGeometry x="0" y="150" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="u7" value="created_at / updated_at"   style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_users"><mxGeometry x="0" y="174" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- password_reset_tokens  (x=325, y=44, h=150) -->
+        <mxCell id="t_prt" value="password_reset_tokens" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="325" y="44" width="255" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="PK  id"              style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_prt"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="p2" value="FK  user_id → users" style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_prt"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="p3" value="token_hash"           style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_prt"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="p4" value="expires_at"           style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_prt"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="p5" value="used_at / created_at" style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_prt"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- alert_mute_preferences  (x=620, y=44, h=126) -->
+        <mxCell id="t_amp" value="alert_mute_preferences" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="620" y="44" width="255" height="126" as="geometry"/>
+        </mxCell>
+        <mxCell id="am1" value="PK  id"                    style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_amp"><mxGeometry x="0" y="30" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="am2" value="FK  user_id → users"       style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_amp"><mxGeometry x="0" y="54" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="am3" value="mute_scope / mute_keyword" style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_amp"><mxGeometry x="0" y="78" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="am4" value="created_at / updated_at"   style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_amp"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- alert_saved_view_configs  (x=915, y=44, h=126) -->
+        <mxCell id="t_asvc" value="alert_saved_view_configs" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="915" y="44" width="255" height="126" as="geometry"/>
+        </mxCell>
+        <mxCell id="asvc1" value="PK  id"                        style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_asvc"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="asvc2" value="FK  user_id → users  (UNIQUE)" style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_asvc"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="asvc3" value="views_json  (TEXT)"            style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_asvc"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="asvc4" value="created_at / updated_at"       style="rounded=0;fillColor=#fff;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_asvc"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- ══════════════════════════════════════════ HEALTH ══ -->
+
+        <!-- patient_profiles  (x=30, y=310, h=222) -->
+        <mxCell id="t_pp" value="patient_profiles" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="30" y="310" width="255" height="222" as="geometry"/>
+        </mxCell>
+        <mxCell id="pp1" value="PK  id"                                style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_pp"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="pp2" value="FK  user_id → users"                   style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_pp"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="pp3" value="patient_name / age / gender"            style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_pp"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="pp4" value="baseline_hr_rest / min / max"           style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_pp"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="pp5" value="diagnosis_notes"                        style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_pp"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="pp6" value="medications"                            style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_pp"><mxGeometry x="0" y="150" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="pp7" value="consent_analytics / consent_pdf_export" style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_pp"><mxGeometry x="0" y="174" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="pp8" value="created_at / updated_at"               style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_pp"><mxGeometry x="0" y="198" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- patient_hr_records  (x=325, y=310, h=198) -->
+        <mxCell id="t_hr" value="patient_hr_records" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="325" y="310" width="255" height="198" as="geometry"/>
+        </mxCell>
+        <mxCell id="hr1" value="PK  id"                           style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_hr"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="hr2" value="FK  user_id → users"              style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_hr"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="hr3" value="bpm / severity / risk"            style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_hr"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="hr4" value="mood / source / note"             style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_hr"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="hr5" value="hrv_rmssd / hrv_sdnn / hrv_pnn50" style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_hr"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="hr6" value="hrv_mean_rr / hrv_risk"           style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_hr"><mxGeometry x="0" y="150" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="hr7" value="recorded_at / created_at"         style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_hr"><mxGeometry x="0" y="174" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- medicine_reminders  (x=620, y=310, h=222) -->
+        <mxCell id="t_mr" value="medicine_reminders" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="620" y="310" width="255" height="222" as="geometry"/>
+        </mxCell>
+        <mxCell id="mr1" value="PK  id"                               style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_mr"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="mr2" value="FK  user_id → users"                  style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_mr"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="mr3" value="medicine_name"                        style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_mr"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="mr4" value="dosage"                               style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_mr"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="mr5" value="time_of_day  (HH:MM)"                style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_mr"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="mr6" value="recurrence  (daily/weekday/weekend)"  style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_mr"><mxGeometry x="0" y="150" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="mr7" value="notify_email / is_active"             style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_mr"><mxGeometry x="0" y="174" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="mr8" value="last_sent_on / last_taken_on"         style="rounded=0;fillColor=#fff;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_mr"><mxGeometry x="0" y="198" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- ══════════════════════════════════════════ DEVICE ══ -->
+
+        <!-- rooms  (x=30, y=578, h=150) -->
+        <mxCell id="t_rooms" value="rooms" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="30" y="578" width="255" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="ro1" value="PK  id"                           style="rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_rooms"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="ro2" value="FK  user_id → users"              style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_rooms"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="ro3" value="name"                             style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_rooms"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="ro4" value="polygon_data  (JSON)"            style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_rooms"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="ro5" value="color / floorplan_url / created_at" style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_rooms"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- device  (x=325, y=578, h=246) -->
+        <mxCell id="t_dev" value="device" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="325" y="578" width="255" height="246" as="geometry"/>
+        </mxCell>
+        <mxCell id="dv1" value="PK  id"                        style="rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_dev"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="dv2" value="FK  user_id → users"           style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_dev"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="dv3" value="FK  room_id → rooms (nullable)" style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_dev"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="dv4" value="name / code"                   style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_dev"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="dv5" value="icon / device_type / category"  style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_dev"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="dv6" value="control_types  (JSON)"         style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_dev"><mxGeometry x="0" y="150" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="dv7" value="metadata_json  (JSON)"         style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_dev"><mxGeometry x="0" y="174" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="dv8" value="map_x / map_y"                 style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_dev"><mxGeometry x="0" y="198" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="dv9" value="is_deleted / deleted_at"       style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_dev"><mxGeometry x="0" y="222" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- device_status  (x=620, y=578, h=126) -->
+        <mxCell id="t_ds" value="device_status" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="620" y="578" width="255" height="126" as="geometry"/>
+        </mxCell>
+        <mxCell id="ds1" value="PK  id"                style="rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_ds"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="ds2" value="FK  device_id → device" style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_ds"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="ds3" value="is_on / value"          style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_ds"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="ds4" value="updated_at"             style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_ds"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- sensor_data  (x=915, y=578, h=102) -->
+        <mxCell id="t_sd" value="sensor_data" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="915" y="578" width="255" height="102" as="geometry"/>
+        </mxCell>
+        <mxCell id="sd1" value="PK  id"                style="rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_sd"><mxGeometry x="0" y="30" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="sd2" value="FK  device_id → device" style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_sd"><mxGeometry x="0" y="54" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="sd3" value="value / created_at"    style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_sd"><mxGeometry x="0" y="78" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- schedules  (x=30, y=808, h=174) -->
+        <mxCell id="t_sc" value="schedules" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="30" y="808" width="255" height="174" as="geometry"/>
+        </mxCell>
+        <mxCell id="sc1" value="PK  id"                               style="rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_sc"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="sc2" value="FK  device_id → device"               style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_sc"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="sc3" value="FK  created_by → users  (nullable)"   style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_sc"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="sc4" value="cron_expr / label"                    style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_sc"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="sc5" value="action  (JSON)"                       style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_sc"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="sc6" value="is_active / remind_only / created_at"  style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_sc"><mxGeometry x="0" y="150" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- automations  (x=325, y=854, h=174) -->
+        <mxCell id="t_au" value="automations" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="325" y="854" width="255" height="174" as="geometry"/>
+        </mxCell>
+        <mxCell id="au1" value="PK  id"                         style="rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_au"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="au2" value="FK  trigger_device_id → device"  style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_au"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="au3" value="FK  action_device_id → device"   style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_au"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="au4" value="trigger_condition"               style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_au"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="au5" value="action_payload  (JSON)"          style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_au"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="au6" value="name / is_active / created_at"   style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_au"><mxGeometry x="0" y="150" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- ══════════════════════════════════════════ ALERT/LOG ══ -->
+
+        <!-- control_log  (x=1215, y=44, h=174) -->
+        <mxCell id="t_cl" value="control_log" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1215" y="44" width="255" height="174" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl1" value="PK  id"                           style="rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_cl"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="cl2" value="FK  user_id → users  (nullable)"   style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_cl"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="cl3" value="FK  device_id → device (nullable)"  style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_cl"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="cl4" value="device_code"                      style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_cl"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="cl5" value="action"                           style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_cl"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="cl6" value="source  (manual / alfred / rule)" style="rounded=0;fillColor=#fff;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_cl"><mxGeometry x="0" y="150" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- alerts  (x=1215, y=262, h=174) -->
+        <mxCell id="t_al" value="alerts" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1215" y="262" width="255" height="174" as="geometry"/>
+        </mxCell>
+        <mxCell id="al1" value="PK  id"                           style="rounded=0;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_al"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="al2" value="FK  user_id → users"              style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_al"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="al3" value="FK  device_id → device (nullable)" style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_al"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="al4" value="device_code / level"              style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_al"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="al5" value="message"                          style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_al"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="al6" value="is_read / created_at"             style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_al"><mxGeometry x="0" y="150" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- alert_rules  (x=1215, y=482, h=174) -->
+        <mxCell id="t_ar" value="alert_rules" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1215" y="482" width="255" height="174" as="geometry"/>
+        </mxCell>
+        <mxCell id="ar1" value="PK  id"                style="rounded=0;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_ar"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="ar2" value="FK  user_id → users"   style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_ar"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="ar3" value="FK  device_id → device" style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_ar"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="ar4" value="sensor_type"            style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_ar"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="ar5" value="min_value / max_value"  style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_ar"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="ar6" value="is_active / created_at" style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_ar"><mxGeometry x="0" y="150" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- notifications  (x=1215, y=702, h=150) -->
+        <mxCell id="t_nf" value="notifications" style="swimlane;fontStyle=1;fontSize=13;align=center;startSize=30;collapsible=0;expand=0;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1215" y="702" width="255" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="nf1" value="PK  id"                        style="rounded=0;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_nf"><mxGeometry x="0" y="30"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="nf2" value="FK  user_id → users"           style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_nf"><mxGeometry x="0" y="54"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="nf3" value="FK  alert_id → alerts (nullable)" style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_nf"><mxGeometry x="0" y="78"  width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="nf4" value="title / body"                  style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_nf"><mxGeometry x="0" y="102" width="255" height="24" as="geometry"/></mxCell>
+        <mxCell id="nf5" value="is_read / created_at"          style="rounded=0;fillColor=#fff;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=6;" vertex="1" parent="t_nf"><mxGeometry x="0" y="126" width="255" height="24" as="geometry"/></mxCell>
+
+        <!-- ══════════════════════════════════════════ RELATIONSHIPS ══ -->
+
+        <!-- ── AUTH: users → adjacent tables in same row ── -->
+        <!-- users → password_reset_tokens (direct, 40px gap between col1 and col2) -->
+        <mxCell id="r_u_prt" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.2;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" edge="1" source="t_users" target="t_prt" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- users → alert_mute_preferences (route y=208 below prt-bottom=194, through gap x=598) -->
+        <mxCell id="r_u_amp" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.83;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" edge="1" source="t_users" target="t_amp" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="598" y="208"/><mxPoint x="598" y="107"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- users → alert_saved_view_configs (route y=220, through gap x=893 between amp and asvc) -->
+        <mxCell id="r_u_asvc" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.89;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" edge="1" source="t_users" target="t_asvc" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="893" y="220"/><mxPoint x="893" y="107"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- ── HEALTH: users → health tables (y=252-260 corridor below AUTH, above HEALTH y=310) ── -->
+        <!-- users → patient_profiles (left margin x=10, clear of all tables) -->
+        <mxCell id="r_u_pp" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;endArrow=ERmany;startArrow=ERone;exitX=0;exitY=1;exitPerimeter=0;entryX=0;entryY=0;entryPerimeter=0;" edge="1" source="t_users" target="t_pp" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="10" y="252"/><mxPoint x="10" y="310"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- users → patient_hr_records (exit bottom 40%, corridor y=254) -->
+        <mxCell id="r_u_hr" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;endArrow=ERmany;startArrow=ERone;exitX=0.4;exitY=1;exitPerimeter=0;entryX=0.5;entryY=0;entryPerimeter=0;" edge="1" source="t_users" target="t_hr" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="132" y="254"/><mxPoint x="452" y="254"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- users → medicine_reminders (exit bottom 65%, corridor y=260) -->
+        <mxCell id="r_u_mr" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;endArrow=ERmany;startArrow=ERone;exitX=0.65;exitY=1;exitPerimeter=0;entryX=0.5;entryY=0;entryPerimeter=0;" edge="1" source="t_users" target="t_mr" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="196" y="260"/><mxPoint x="747" y="260"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- ── DEVICE: users → device tables ── -->
+        <!-- users → rooms (left margin x=5, parallel to pp at x=10) -->
+        <mxCell id="r_u_rooms" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;endArrow=ERmany;startArrow=ERone;exitX=0;exitY=0.85;exitPerimeter=0;entryX=0;entryY=0.08;entryPerimeter=0;" edge="1" source="t_users" target="t_rooms" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="5" y="212"/><mxPoint x="5" y="590"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- users → device (exit bottom 25%, col1-col2 gap corridor x=305) -->
+        <mxCell id="r_u_dev" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;endArrow=ERmany;startArrow=ERone;exitX=0.25;exitY=1;exitPerimeter=0;entryX=0;entryY=0.33;entryPerimeter=0;" edge="1" source="t_users" target="t_dev" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="93" y="258"/><mxPoint x="305" y="258"/><mxPoint x="305" y="659"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- rooms → device (direct horizontal, same row) -->
+        <mxCell id="r_rooms_dev" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.5;exitPerimeter=0;entryX=0;entryY=0.35;entryPerimeter=0;" edge="1" source="t_rooms" target="t_dev" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- device → device_status (direct horizontal) -->
+        <mxCell id="r_dev_ds" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.3;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" edge="1" source="t_dev" target="t_ds" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- device → sensor_data (below device_status bottom y=704, route at y=712) -->
+        <mxCell id="r_dev_sd" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.55;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" edge="1" source="t_dev" target="t_sd" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="900" y="712"/><mxPoint x="900" y="629"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- device → schedules (left col gap x=308, y=818) -->
+        <mxCell id="r_dev_sc" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;endArrow=ERmany;startArrow=ERone;exitX=0;exitY=0.9;exitPerimeter=0;entryX=0.5;entryY=0;entryPerimeter=0;" edge="1" source="t_dev" target="t_sc" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="308" y="818"/><mxPoint x="157" y="818"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- device → automations trigger_device_id -->
+        <mxCell id="r_dev_au1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;endArrow=ERmany;startArrow=ERone;exitX=0.5;exitY=1;exitPerimeter=0;entryX=0;entryY=0.3;entryPerimeter=0;" edge="1" source="t_dev" target="t_au" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- device → automations action_device_id (dashed) -->
+        <mxCell id="r_dev_au2" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;dashed=1;endArrow=ERmany;startArrow=ERone;exitX=0.65;exitY=1;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" edge="1" source="t_dev" target="t_au" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- device → control_log (below DEVICE area y=754, corridor x=1197) -->
+        <mxCell id="r_dev_cl" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.7;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" edge="1" source="t_dev" target="t_cl" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="905" y="754"/><mxPoint x="1197" y="754"/><mxPoint x="1197" y="131"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- ── ALERT/LOG: right-column corridor x=1174–1207 ── -->
+        <!-- users → notifications (y=224→248, corridor x=1174) -->
+        <mxCell id="r_u_nf" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.91;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" edge="1" source="t_users" target="t_nf" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1174" y="248"/><mxPoint x="1174" y="777"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- users → alerts (y=242→252, corridor x=1183) -->
+        <mxCell id="r_u_al" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=1;exitPerimeter=0;entryX=0;entryY=0.3;entryPerimeter=0;" edge="1" source="t_users" target="t_al" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1183" y="252"/><mxPoint x="1183" y="314"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- users → alert_rules (y=236→256, corridor x=1188) -->
+        <mxCell id="r_u_ar" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.97;exitPerimeter=0;entryX=0;entryY=0.3;entryPerimeter=0;" edge="1" source="t_users" target="t_ar" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1188" y="256"/><mxPoint x="1188" y="534"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- device → alerts (dashed, nullable FK, y=760, corridor x=1202) -->
+        <mxCell id="r_dev_al" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;dashed=1;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.74;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" edge="1" source="t_dev" target="t_al" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="905" y="760"/><mxPoint x="1202" y="760"/><mxPoint x="1202" y="349"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- device → alert_rules (dashed, y=768, corridor x=1207) -->
+        <mxCell id="r_dev_ar" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;dashed=1;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.77;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0;" edge="1" source="t_dev" target="t_ar" parent="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="905" y="768"/><mxPoint x="1207" y="768"/><mxPoint x="1207" y="569"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- alerts → notifications (direct vertical, same column) -->
+        <mxCell id="r_al_nf" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;endArrow=ERmany;startArrow=ERone;exitX=0.5;exitY=1;exitPerimeter=0;entryX=0.5;entryY=0;entryPerimeter=0;" edge="1" source="t_al" target="t_nf" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,13 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../core/bc.dart';
-import '../core/api_headers.dart';
 import '../core/auth_provider.dart';
 import '../core/cfg_provider.dart';
 import '../core/socket_service.dart';
+import '../modules/dashboard/dashboard_provider.dart';
 import '../widgets/common_widgets.dart';
 import 'settings_screen.dart';
 import 'notifications_screen.dart';
@@ -20,12 +18,10 @@ class DashScreen extends ConsumerStatefulWidget {
 
 class _DashState extends ConsumerState<DashScreen>
     with TickerProviderStateMixin {
-  List _devices = [], _rooms = [];
-  bool _loading = true;
-  String? _err;
   late AnimationController _scan;
   StreamSubscription<Map<String, dynamic>>? _deviceSub;
   StreamSubscription<Map<String, dynamic>>? _alertSub;
+  Timer? _pollTimer;
 
   @override
   void initState() {
@@ -33,14 +29,12 @@ class _DashState extends ConsumerState<DashScreen>
     _scan = AnimationController(
       vsync: this, duration: const Duration(seconds: 5),
     )..repeat();
-    _load();
+    Future.microtask(() => ref.read(dashboardProvider.notifier).load());
     _connectSocket();
     // Keep a slow polling fallback (15 s) in case socket drops
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 15));
-      if (!mounted) return false;
-      await _refresh();
-      return true;
+    _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+      if (!mounted) return;
+      await ref.read(dashboardProvider.notifier).refreshDevices();
     });
   }
 
@@ -56,18 +50,7 @@ class _DashState extends ConsumerState<DashScreen>
       if (!mounted) return;
       final code = data['device_code'] as String?;
       if (code == null) return;
-      setState(() {
-        _devices = _devices.map((d) {
-          if (d['code'] == code || d['device_code'] == code) {
-            return {
-              ...Map<String, dynamic>.from(d),
-              if (data.containsKey('is_on'))   'is_on': data['is_on'],
-              if (data.containsKey('value'))    'value': data['value'],
-            };
-          }
-          return d;
-        }).toList();
-      });
+      ref.read(dashboardProvider.notifier).applyDeviceUpdate(data);
     });
 
     _alertSub = svc.onNewAlert.listen((data) {
@@ -89,76 +72,21 @@ class _DashState extends ConsumerState<DashScreen>
   void dispose() {
     _deviceSub?.cancel();
     _alertSub?.cancel();
+    _pollTimer?.cancel();
     _scan.dispose();
     super.dispose();
   }
 
-  String get _base => ref.read(cfgProvider);
-
-  Future<void> _load() async {
-    if (_devices.isEmpty) setState(() => _loading = true);
-    try {
-      final base = _base;
-      final dr = await http
-          .get(Uri.parse('$base/api/devices'), headers: apiJsonHeaders(ref.read(authProvider).bearerHeader))
-          .timeout(const Duration(seconds: 10));
-      final rr = await http
-          .get(Uri.parse('$base/api/rooms'), headers: apiJsonHeaders(ref.read(authProvider).bearerHeader))
-          .timeout(const Duration(seconds: 10));
-      if (dr.statusCode == 200) {
-        final d = jsonDecode(dr.body);
-        _devices = d is List ? d : (d['data'] ?? d['devices'] ?? []);
-      } else if (dr.statusCode == 401) {
-        _err = 'Device API denied access. Internal token missing or invalid.';
-      }
-      if (rr.statusCode == 200) {
-        final d = jsonDecode(rr.body);
-        _rooms = d is List ? d : (d['data'] ?? d['rooms'] ?? []);
-      }
-      _err ??= null;
-    } catch (_) {
-      _err = 'Backend offline — $_base';
-    }
-    if (mounted) setState(() => _loading = false);
-  }
-
-  Future<void> _refresh() async {
-    try {
-      final r = await http
-          .get(Uri.parse('$_base/api/devices'), headers: apiJsonHeaders(ref.read(authProvider).bearerHeader))
-          .timeout(const Duration(seconds: 5));
-      if (r.statusCode == 200 && mounted) {
-        final d = jsonDecode(r.body);
-        setState(() => _devices = d is List ? d : (d['data'] ?? d['devices'] ?? []));
-      }
-    } catch (_) {}
-  }
-
   Future<void> _toggle(dynamic dev) async {
-    final name = dev['name'] ?? '';
-    final was  = dev['is_on'] == true;
-    setState(() {
-      _devices = _devices
-          .map((d) => d['name'] == name ? {...d, 'is_on': !was} : d)
-          .toList();
-    });
-    try {
-      await http.post(
-        Uri.parse('$_base/api/devices/control'),
-        headers: apiJsonHeaders(ref.read(authProvider).bearerHeader),
-        body: jsonEncode({'name': name, 'action': was ? '0' : '1'}),
-      ).timeout(const Duration(seconds: 5));
-    } catch (_) {
-      setState(() {
-        _devices = _devices
-            .map((d) => d['name'] == name ? {...d, 'is_on': was} : d)
-            .toList();
-      });
-    }
+    final was = dev['is_on'] == true;
+    await ref
+        .read(dashboardProvider.notifier)
+        .setDevicePower(Map<String, dynamic>.from(dev), !was);
   }
 
   @override
   Widget build(BuildContext ctx) {
+    final dashboard = ref.watch(dashboardProvider);
     final h = MediaQuery.of(ctx).size.height;
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -181,17 +109,20 @@ class _DashState extends ConsumerState<DashScreen>
           ),
         ),
         SafeArea(child: Column(children: [
-          _TopBar(devices: _devices, onRefresh: _load),
+          _TopBar(
+            devices: dashboard.devices,
+            onRefresh: () => ref.read(dashboardProvider.notifier).load(),
+          ),
           Expanded(
-            child: _loading
+            child: dashboard.loading
               ? const BcLoader()
               : RefreshIndicator(
                   color: BC.gold, backgroundColor: BC.panel,
-                  onRefresh: _load,
+                  onRefresh: () => ref.read(dashboardProvider.notifier).load(),
                   child: _Body(
-                    devices: _devices,
-                    rooms: _rooms,
-                    err: _err,
+                    devices: dashboard.devices,
+                    rooms: dashboard.rooms,
+                    err: dashboard.error,
                     onToggle: _toggle,
                   ),
                 ),
@@ -241,17 +172,17 @@ class _TopBar extends ConsumerWidget {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: BC.gold.withValues(alpha: 0.4)),
             ),
-                child: const Text('🦇', style: TextStyle(fontSize: 18)),
+                child: const Text('🤵', style: TextStyle(fontSize: 18)),
           ),
           const SizedBox(width: 12),
           const Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('BATMAN OS', style: TextStyle(
+              Text('ALFRED SMART HOME', style: TextStyle(
                 fontFamily: 'monospace', fontSize: 15, letterSpacing: 3.4,
                 color: BC.gold, fontWeight: FontWeight.bold,
               )),
               SizedBox(height: 3),
-              Text('MOBILE COMMAND DECK', style: TextStyle(
+              Text('ELDER CARE SYSTEM', style: TextStyle(
                 fontFamily: 'monospace', fontSize: 8,
                 letterSpacing: 1.9, color: BC.txtDim,
               )),
@@ -360,8 +291,6 @@ class _Body extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(14, 16, 14, 110),
     children: [
       if (err != null) ...[BcErrBanner(msg: err!), const SizedBox(height: 12)],
-      const _SceneShortcuts(),
-      const SizedBox(height: 12),
       BcMissionCard(devices: devices, rooms: rooms),
       const SizedBox(height: 14),
       _StatsRow(devices: devices, rooms: rooms),
@@ -602,35 +531,4 @@ class _DevCard extends StatelessWidget {
   }
 }
 
-// ── Scene Shortcuts ───────────────────────
-class _SceneShortcuts extends StatelessWidget {
-  const _SceneShortcuts();
-
-  static const _scenes = [
-    ('💡', 'ALL ON',   BC.gold),
-    ('🌑', 'ALL OFF',  BC.txtDim),
-    ('🌙', 'NIGHT',    BC.purple),
-    ('🌅', 'MORNING',  BC.cyan),
-  ];
-
-  @override
-  Widget build(BuildContext ctx) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Padding(
-        padding: EdgeInsets.only(left: 2, bottom: 8),
-        child: Text('QUICK SCENES', style: TextStyle(
-          fontFamily: 'monospace', fontSize: 8,
-          color: BC.txtDim, letterSpacing: 2.5,
-        )),
-      ),
-      Row(
-        children: _scenes.map((s) => Expanded(child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 3),
-          child: BcSceneBtn(emoji: s.$1, label: s.$2, color: s.$3, onTap: () {}),
-        ))).toList(),
-      ),
-    ],
-  );
-}
 

@@ -1,0 +1,137 @@
+IoT Smart House Platform for Elderly Care and Daily Activity Support
+TRÌNH BÀY ĐIỂM SMART CỦA DỰ ÁN THEO 5 VÒNG
+
+Mục tiêu tài liệu:
+- Trả lời rõ câu hỏi: dự án “smart” ở điểm nào.
+- Mô tả thiết bị phối hợp với nhau ra sao.
+- Mô tả cơ chế cảnh báo và phản ứng của hệ thống.
+
+==================================================
+VÒNG 1: CẢM NHẬN THÔNG MINH (SENSING LOOP)
+==================================================
+Đầu vào:
+- Cảm biến gửi dữ liệu liên tục: nhiệt độ, độ ẩm, ánh sáng, chuyển động (PIR), nhịp tim.
+
+Xử lý:
+- ESP32 publish MQTT về backend.
+- Backend lưu dữ liệu vào lịch sử sensor_data và cập nhật trạng thái tức thời device_status.
+
+Đầu ra:
+- Dashboard thấy trạng thái mới gần thời gian thực.
+- Dữ liệu được tích lũy để phục vụ cảnh báo và phân tích xu hướng.
+
+Ý nghĩa “smart”:
+- Hệ thống không chờ người dùng nhập tay, mà tự nhận biết bối cảnh môi trường và sức khỏe theo thời gian thực.
+
+==================================================
+VÒNG 2: NHẬN BIẾT NGỮ CẢNH + ĐỀ XUẤT THÔNG MINH
+==================================================
+Đầu vào:
+- Dòng dữ liệu cảm biến từ Vòng 1.
+
+Xử lý:
+- So ngưỡng theo rule (ví dụ quá nóng, quá ẩm, quá tối).
+- Với tình huống môi trường, hệ thống tạo “đề xuất hành động” (gợi ý bật quạt/điều hòa/đèn) thay vì tự kích hoạt cưỡng bức.
+- Có cơ chế xác nhận người dùng trước khi điều khiển.
+- Có cơ chế Mute gợi ý (ví dụ 1 giờ) để tránh spam thông báo.
+
+Đầu ra:
+- Alert có ngữ nghĩa hành động: “Bạn có muốn bật thiết bị X không?”
+- Người dùng giữ quyền quyết định cuối cùng.
+
+Ý nghĩa “smart”:
+- Smart không chỉ là tự động, mà là tự động có kiểm soát theo ngữ cảnh và sở thích người dùng.
+
+==================================================
+VÒNG 3: PHỐI HỢP THIẾT BỊ (COORDINATION LOOP)
+==================================================
+Đầu vào:
+- Lệnh người dùng (Web/Mobile/AI), hoặc đề xuất đã được xác nhận.
+- Rule schedule/automation đã cấu hình.
+
+Xử lý:
+- Device UseCase chuẩn hóa lệnh ON/OFF/giá trị.
+- MQTT publisher gửi lệnh tới đúng thiết bị.
+- Đồng bộ ngược trạng thái vào device_status và ghi nhật ký control_log.
+
+Đầu ra:
+- Nhiều thiết bị phối hợp theo logic “nếu-thì”:
+  ví dụ trời tối -> đề xuất bật đèn; nóng -> đề xuất bật quạt/AC.
+- Hành động có thể truy vết đầy đủ qua log.
+
+Ý nghĩa “smart”:
+- Không phải các thiết bị rời rạc; chúng được điều phối bởi cùng một bộ não logic, có ghi nhận trạng thái và lịch sử.
+
+==================================================
+VÒNG 4: CẢNH BÁO ĐA TẦNG (ALERTING LOOP)
+==================================================
+Đầu vào:
+- Sự kiện bất thường từ cảm biến, SOS, nhắc thuốc đến hạn, bất thường nhịp tim.
+
+Xử lý:
+- Phân loại mức độ (info/warning/critical).
+- Phát sự kiện realtime qua Socket.IO cho dashboard.
+- Tùy ngữ cảnh có thể gửi email nhắc/cảnh báo.
+
+Đầu ra:
+- Người dùng nhận cảnh báo tức thời trên giao diện.
+- Có lịch sử cảnh báo trong DB để kiểm tra lại sau.
+
+Ý nghĩa “smart”:
+- Cảnh báo không đơn kênh, không “mù trạng thái”; hệ thống vừa realtime vừa lưu vết để quản lý dài hạn.
+
+==================================================
+VÒNG 5: CHĂM SÓC CHỦ ĐỘNG CHO NGƯỜI CAO TUỔI
+==================================================
+Đầu vào:
+- Hồ sơ người dùng, dữ liệu nhịp tim, lịch thuốc, ngôn ngữ và ngữ cảnh phòng.
+
+Xử lý:
+- AI/logic phát hiện bất thường nhịp tim.
+- Module medicine reminder quét định kỳ, lọc theo recurrence và cửa sổ thời gian để tránh miss.
+- Alfred AI hỗ trợ hội thoại VI/EN, có cơ chế xác nhận lệnh an toàn.
+
+Đầu ra:
+- Nhắc thuốc đúng giờ, giảm quên thuốc.
+- Cảnh báo sức khỏe kịp thời.
+- Tăng mức hỗ trợ sinh hoạt hằng ngày cho người cao tuổi.
+
+Ý nghĩa “smart”:
+- Dự án không dừng ở “nhà tự động”, mà tiến tới “nhà biết chăm sóc”.
+
+==================================================
+THIẾT BỊ LÀM GÌ VỚI NHAU? (MÔ TẢ NGẮN DỄ TRÌNH BÀY)
+==================================================
+1) Cảm biến môi trường cung cấp dữ liệu nền (nhiệt độ/độ ẩm/ánh sáng/chuyển động).
+2) Backend hợp nhất dữ liệu, đánh giá điều kiện và tạo đề xuất/cảnh báo.
+3) Thiết bị chấp hành (đèn, quạt, AC, relay) nhận lệnh qua MQTT khi người dùng xác nhận hoặc có rule.
+4) Toàn bộ trạng thái được phản chiếu lại UI theo thời gian thực.
+5) Nhật ký và lịch sử được lưu DB để truy vết và tối ưu vận hành.
+
+==================================================
+CẢNH BÁO THẾ NÀO? (MÔ HÌNH 3 LỚP)
+==================================================
+Lớp 1 - Realtime tại chỗ:
+- Alert xuất hiện ngay trên dashboard qua Socket.IO.
+
+Lớp 2 - Hành động có xác nhận:
+- Alert dạng gợi ý có nút xác nhận hành động (bật thiết bị phù hợp).
+- Có Mute/Unmute để tránh gây phiền khi người dùng chủ động giữ môi trường hiện tại.
+
+Lớp 3 - Lưu trữ và nhắc từ xa:
+- Alert lưu DB.
+- Email reminder/cảnh báo cho các luồng cần thiết (ví dụ nhắc thuốc).
+
+==================================================
+ĐIỂM MẠNH CỐT LÕI ĐỂ BẢO VỆ
+==================================================
+1) Smart theo vòng kín: Cảm nhận -> Phân tích -> Đề xuất/Điều khiển -> Phản hồi -> Lưu vết.
+2) Smart có đạo đức sử dụng: ưu tiên xác nhận người dùng, không ép tự động mù quáng.
+3) Đa nền tảng thật sự: Web + Mobile + ESP32 + Backend thời gian thực.
+4) Chăm sóc người cao tuổi theo nhu cầu thật: nhắc thuốc, theo dõi sức khỏe, cảnh báo nguy cơ.
+5) Có bằng chứng kỹ thuật: trạng thái realtime, log điều khiển, lịch sử cảnh báo, dữ liệu cảm biến trong DB.
+
+==================================================
+KẾT LUẬN 1 CÂU (DÙNG KHI CHỐT PHẦN TRÌNH BÀY)
+==================================================
+Đề tài thể hiện tính “Smart” không chỉ ở tự động hóa thiết bị, mà ở khả năng hiểu ngữ cảnh sống của người cao tuổi, phối hợp đa thiết bị theo vòng phản hồi thời gian thực, và đưa ra hỗ trợ an toàn, có kiểm soát, có thể kiểm chứng bằng dữ liệu.

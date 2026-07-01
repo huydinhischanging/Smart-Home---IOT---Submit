@@ -1,0 +1,151 @@
+<mxfile host="app.diagrams.net" version="24.0.0">
+  <diagram name="Alfred Chat Pipeline" id="alfred-v3">
+    <mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="0" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1050" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE -->
+        <mxCell id="title" value="Alfred AI — handle_chat() Pipeline" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="14" width="700" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- START -->
+        <mxCell id="start" value="User message + mode" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="235" y="54" width="230" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Load house context -->
+        <mxCell id="load" value="Load real-time house context&#xa;(devices · rooms · sensors — 10 s TTL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666;fontColor=#333;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="180" y="120" width="340" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- Step 1: SOS -->
+        <mxCell id="d_sos" value="Step 1 — SOS&#xa;Distress keyword detected?&#xa;(all modes)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFD5D5;strokeColor=#CC0000;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="245" y="180" width="210" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a_sos" value="Emit SOS alert (critical) + email caretaker&#xa;clear pending · return immediately (all modes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD5D5;strokeColor=#CC0000;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="498" y="187" width="265" height="66" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: FAQ -->
+        <mxCell id="d_faq" value="Step 2 — FAQ&#xa;Greeting / help / time keyword?&#xa;(rule mode only)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="245" y="276" width="210" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="a_faq" value="Return hardcoded reply&#xa;(rule mode — no LLM call)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="498" y="286" width="265" height="56" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3: Pending -->
+        <mxCell id="d_pend" value="Step 3 — Pending Action&#xa;Pending confirmation exists?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="245" y="368" width="210" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="a_pend" value="Resolve pending:  (all modes)&#xa;• schedule + awaiting time → ask / confirm&#xa;• confirm → execute MQTT or create schedule&#xa;• deny → cancel&#xa;• need_room → ask which room" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="498" y="363" width="265" height="82" as="geometry" />
+        </mxCell>
+
+        <!-- Step 4: Schedule -->
+        <mxCell id="d_sched" value="Step 4 — Schedule Intent&#xa;Time / recurrence cue detected?&#xa;(schedule_intent_parser)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="245" y="462" width="210" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a_sched" value="Parse cron → _apply_daypart()&#xa;Hour known → confirm HH:MM&#xa;Hour unknown → ask 'What time?'&#xa;store_pending(type=schedule)  (all modes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="498" y="466" width="265" height="72" as="geometry" />
+        </mxCell>
+
+        <!-- Step 5: Info query -->
+        <mxCell id="d_info" value="Step 5 — Info Query&#xa;Status / sensor keyword?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="245" y="558" width="210" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="a_info" value="Answer from live house context&#xa;No device command  (all modes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="498" y="565" width="265" height="56" as="geometry" />
+        </mxCell>
+
+        <!-- Step 6: Device control -->
+        <mxCell id="d_ctrl" value="Step 6 — Device Control&#xa;Control keyword?&#xa;(word-boundary regex)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="245" y="644" width="210" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="a_ctrl" value="Resolve rooms → filter devices&#xa;store_pending(kind=control)&#xa;Return confirmation prompt  (all modes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="498" y="649" width="265" height="66" as="geometry" />
+        </mxCell>
+
+        <!-- Step 7: Small-talk -->
+        <mxCell id="d_c0" value="Step 7 — Small-talk&#xa;Greeting / thanks / how-are-you?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="245" y="736" width="210" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="a_c0" value="Return greeting / small-talk reply&#xa;(all modes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="498" y="744" width="265" height="56" as="geometry" />
+        </mxCell>
+
+        <!-- Step 8: Mood + Scenario -->
+        <mxCell id="d_c1" value="Step 8 — Mood / Scenario&#xa;MOOD_PROFILES keyword?&#xa;ALFRED_SCENARIOS keyword?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="245" y="824" width="210" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a_c1" value="store_pending (mood_only or scenario plan)&#xa;Return suggestion + confirmation prompt&#xa;(all modes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="498" y="831" width="265" height="66" as="geometry" />
+        </mxCell>
+
+        <!-- Step 9: Fallback -->
+        <mxCell id="a_d" value="Step 9 — Fallback&#xa;rule    →  not_understood_reply()&#xa;gemini  →  Gemini 2.5 Flash  (house-context prompt)&#xa;llm     →  Ollama parse_intent()  →  execute or reply" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="130" y="926" width="560" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- EDGES -->
+        <mxCell id="e0" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="start" target="load" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_load_sos" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="load" target="d_sos" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sos_yes" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_sos" target="a_sos" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sos_no" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_sos" target="d_faq" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_faq" target="d_pend" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_faq" target="a_faq" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_pend" target="d_sched" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_pend" target="a_pend" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_sched" target="d_info" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_sched" target="a_sched" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_info" target="d_ctrl" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_info" target="a_info" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_ctrl" target="d_c0" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_ctrl" target="a_ctrl" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_c0" target="d_c1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_c0" target="a_c0" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_c1" target="a_d" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="d_c1" target="a_c1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

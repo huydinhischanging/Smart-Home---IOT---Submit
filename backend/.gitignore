@@ -21,7 +21,10 @@ __pycache__/
 
 # Database
 *.db
-*.sqlite3
+
+# External datasets (large files, not committed)
+data/*.csv
+data/*.xlsx
 
 # Certificates (may contain private keys)
 *.key

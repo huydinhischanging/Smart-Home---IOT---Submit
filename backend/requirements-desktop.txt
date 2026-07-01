@@ -1,0 +1,12 @@
+# requirements-desktop.txt
+# PyQt6 GUI Control Center (chỉ chạy trên máy local)
+# Dùng khi cần desktop_control_center/: pip install -r requirements-desktop.txt
+# KHÔNG cài trên server/VPS
+
+-r requirements-server.txt
+
+PyQt6==6.10.2
+PyQt6-Qt6==6.10.2
+PyQt6-WebEngine==6.10.0
+PyQt6-WebEngine-Qt6==6.10.2
+PyQt6_sip==13.11.0

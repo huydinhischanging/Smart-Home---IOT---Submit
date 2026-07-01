@@ -1,0 +1,29 @@
+src/
+├── main.js
+│   └── Entry point
+│       - Lắng nghe DOMContentLoaded
+│       - Khởi tạo Dashboard
+│       - Không chứa UI / logic nghiệp vụ
+│
+├── dashboard/
+│   ├── index.js
+│   │   └── Facade / Module initializer
+│   │       - Gọi renderDashboard()
+│   │       - Gọi initDashboardController()
+│   │
+│   ├── dashboard.view.js
+│   │   └── View layer (Render-only)
+│   │       - Render HTML Dashboard
+│   │       - Layout UI, Modal, Panels
+│   │       - KHÔNG xử lý logic
+│   │       - KHÔNG gọi API / Service
+│   │
+│   └── dashboard.controller.js
+│       └── Controller layer (Application Logic)
+│           - Bind UI events
+│           - Xử lý modal Add Device
+│           - Lấy dữ liệu form
+│           - Gọi ApiClient
+│           - Điều phối DeviceManager
+│           - Khởi tạo EEG, Socket.IO, 3D
+│

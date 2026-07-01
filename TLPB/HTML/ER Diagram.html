@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Database ER Diagram - Smart Home & Healthcare</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#e3f2fd',
+                primaryTextColor: '#0d47a1',
+                lineColor: '#1565c0',
+                edgeLabelBackground: '#ffffff'
+            },
+            er: {
+                useMaxWidth: false,
+                layoutDirection: 'TB', // Dàn trang từ trên xuống để tránh rối
+                minEntityWidth: 160,
+                minEntityHeight: 100
+            }
+        });
+    </script>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fdfdfd; overflow: hidden; }
+        .header { background: #0d47a1; color: white; padding: 15px 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); position: absolute; top: 0; width: 100%; z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+        #diagram-container {
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            padding-top: 100px; /* Chừa chỗ cho header */
+        }
+        #diagram-container:active { cursor: grabbing; }
+        .badge { background: #ff9800; color: white; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <strong>Database Entity Relationship Diagram (ERD)</strong>
+            <div style="font-size: 11px; color: #bbdefb; margin-top: 4px;">Cuộn chuột để Zoom • Kéo để di chuyển • Phù hợp trình chiếu luận văn</div>
+        </div>
+        <div class="badge">PostgreSQL Schema v2.1</div>
+    </div>
+
+    <div id="diagram-container">
+        <pre class="mermaid">
+erDiagram
+    USERS ||--o{ ROOMS : "sở hữu"
+    USERS ||--o{ DEVICE : "quản lý"
+    USERS ||--|| PATIENT_PROFILES : "hồ sơ sức khỏe"
+    USERS ||--o{ PATIENT_HR_RECORDS : "dữ liệu nhịp tim"
+    USERS ||--o{ MEDICINE_REMINDERS : "lịch thuốc"
+    USERS ||--o{ CONTROL_LOG : "lịch sử thao tác"
+    USERS ||--o{ ALERTS : "nhận cảnh báo"
+    
+    ROOMS ||--o{ DEVICE : "chứa"
+    
+    DEVICE ||--o{ DEVICE_STATUS : "trạng thái sóng"
+    DEVICE ||--o{ SENSOR_DATA : "dữ liệu cảm biến"
+    DEVICE ||--o{ CONTROL_LOG : "nhật ký"
+    DEVICE ||--o{ ALERTS : "kích hoạt"
+    
+    ALERTS ||--o{ NOTIFICATIONS : "tạo ra"
+    USERS ||--o{ NOTIFICATIONS : "đọc"
+
+    USERS {
+        int id PK
+        string username
+        string email
+        string password
+        enum role
+        bool is_active
+        datetime created_at
+    }
+
+    ROOMS {
+        int id PK
+        int user_id FK
+        string name
+        json polygon_data
+        string floorplan_url
+    }
+
+    DEVICE {
+        int id PK
+        int user_id FK
+        int room_id FK
+        string name
+        string code "Unique per user"
+        json control_types
+        string status
+        bool is_active
+    }
+
+    DEVICE_STATUS {
+        int id PK
+        int device_id FK
+        string status
+        float rssi
+        datetime recorded_at
+    }
+
+    SENSOR_DATA {
+        int id PK
+        int device_id FK
+        float value
+        datetime created_at
+    }
+
+    CONTROL_LOG {
+        int id PK
+        int device_id FK
+        int user_id FK
+        string action
+        string source
+        datetime created_at
+    }
+
+    ALERTS {
+        int id PK
+        int user_id FK
+        int device_id FK
+        string message
+        string severity
+        bool is_read
+    }
+
+    NOTIFICATIONS {
+        int id PK
+        int user_id FK
+        int alert_id FK
+        string title
+        string body
+        bool is_read
+    }
+
+    PATIENT_PROFILES {
+        int id PK
+        int user_id FK
+        string patient_name
+        int age
+        float baseline_hr_rest
+        text medications
+    }
+
+    PATIENT_HR_RECORDS {
+        int id PK
+        int user_id FK
+        int bpm
+        float hrv_rmssd
+        float hrv_sdnn
+        string hrv_risk
+        datetime recorded_at
+    }
+
+    MEDICINE_REMINDERS {
+        int id PK
+        int user_id FK
+        string medicine_name
+        string time_of_day
+        enum recurrence
+        bool is_active
+    }
+        </pre>
+    </div>
+
+    <script src="https://bumbu.github.io/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const svgElement = document.querySelector('#diagram-container svg');
+                if (svgElement) {
+                    // Cấu hình zoom mượt mà cho sơ đồ ER phức tạp
+                    svgPanZoom(svgElement, {
+                        zoomEnabled: true,
+                        controlIconsEnabled: true,
+                        fit: true,
+                        center: true,
+                        minZoom: 0.1,
+                        maxZoom: 10,
+                        zoomScaleSensitivity: 0.4
+                    });
+                }
+            }, 1500); // Đợi mermaid vẽ xong các quan hệ phức tạp
+        });
+    </script>
+</body>
+</html>

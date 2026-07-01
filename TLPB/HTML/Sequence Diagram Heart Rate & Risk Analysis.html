@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Rate Sequence Diagram</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'neutral',
+            sequence: {
+                showSequenceNumbers: true,
+                actorMargin: 50,
+                messageMargin: 40,
+                boxMargin: 10,
+                useMaxWidth: true
+            }
+        });
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #f4f7f6; }
+        .container { background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 90%; max-width: 1000px; }
+        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <h2>Sequence Diagram: Heart Rate & Risk Analysis</h2>
+
+    <div class="container">
+        <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant H6 as [Device] Coospo H6
+    participant BLE as [Bridge] Python Bleak
+    participant MQTT as [Broker] MQTT
+    participant BE as [Server] Backend
+    participant HRV as [AI] HRV/Anomaly Engine
+    participant UI as [Client] Web/Mobile
+
+    note over H6, BLE: Giao tiếp qua giao thức Bluetooth Low Energy
+    H6->>BLE: BLE packet (0x2A37 Heart Rate Measurement)
+    activate BLE
+    BLE->>BLE: Decode Byte Stream to BPM
+    BLE->>MQTT: Publish home/sensors/heart_rate
+    deactivate BLE
+
+    MQTT->>BE: Deliver Message (BPM, Timestamp)
+    activate BE
+    BE->>BE: Persist HR Record (PostgreSQL)
+    
+    note right of BE: Trigger HRV Pipeline
+    BE->>HRV: Update Sliding Window Samples
+    activate HRV
+    HRV->>HRV: Compute RR Intervals (60k/BPM)
+    HRV->>HRV: Analysis (RMSSD, SDNN, pNN50)
+    HRV-->>BE: Risk Assessment Result
+    deactivate HRV
+
+    BE->>UI: Socket.IO Emit (hr_alert / sensor_update)
+    activate UI
+    UI->>UI: Update Dashboard / Trigger Notification
+    deactivate UI
+    deactivate BE
+        </pre>
+    </div>
+
+</body>
+</html>
