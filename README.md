@@ -59,43 +59,83 @@ Built as an undergraduate thesis project at HCMC International University (IU), 
 
 ## Quick Start
 
-### 1. Backend
+### Option A — One-click launcher (Windows, recommended)
+
+The fastest way to run the full system locally on Windows:
+
+```
+double-click: start_dev.bat
+```
+
+This script:
+1. Checks that `backend\.env` exists (exits with an error if missing — see step below)
+2. Verifies Python and Node.js are on PATH
+3. Runs `npm install` automatically if `frontend/node_modules` is absent
+4. Opens two separate terminal windows: Flask backend on `:5000` and Vite frontend on `:5173`
+5. Waits up to 60 seconds for the backend port to be ready before launching the frontend
+
+**Before running for the first time:**
+```bat
+copy backend\.env.example backend\.env
+REM Open backend\.env and fill in: SECRET_KEY, DB_USER, DB_PASS, DB_HOST, DB_NAME, GEMINI_API_KEY
+```
+
+---
+
+### Option B — Manual setup (any OS)
+
+#### 1. Backend
 
 ```bash
 cd backend
 pip install -r requirements.txt
 cp .env.example .env          # fill in SECRET_KEY, DB_*, MQTT_*, GEMINI_API_KEY
 python init_db.py             # create MySQL schema
-python run.py                 # http://localhost:5000
+python run.py                 # → http://localhost:5000
 ```
 
-API docs available at `http://localhost:5000/api/docs` (Swagger UI).
+API docs: `http://localhost:5000/api/docs` (Swagger UI)
 
-### 2. Web Dashboard
+#### 2. Web Dashboard
 
 ```bash
 cd frontend
 npm install
-npm run dev                   # http://localhost:5173
+npm run dev                   # → http://localhost:5173
 ```
 
-### 3. Mobile App
+#### 3. Mobile App (Flutter)
 
 ```bash
 cd MOBILE
 flutter pub get
-flutter run
+flutter run                   # connects to an attached device or running emulator
 ```
 
-### 4. ESP32 Firmware
+**Android emulator one-click launcher (Windows):**
+```
+double-click: backend\start_mobile_simulator.bat
+```
+This script boots a Pixel 7 AVD (`Pixel_7_E36`), waits for ADB to come online, then runs `flutter run` automatically. Edit the top of the file to change `EMULATOR_ID`, `JAVA_HOME`, `PUB_CACHE`, or `FLUTTER_CMD` to match your local paths.
+
+Paths configured inside the script (change if your setup differs):
+| Variable | Default |
+|---|---|
+| `FLUTTER_CMD` | `E:\my-iot-project\Flutter\flutter\bin\flutter.bat` |
+| `JAVA_HOME` | `C:\Program Files\Eclipse Adoptium\jdk-21.0.10.7-hotspot` |
+| `ANDROID_AVD_HOME` | `E:\AndroidAVD` |
+| `PUB_CACHE` | `E:\pub-cache` |
+| `EMULATOR_ID` | `Pixel_7_E36` |
+
+#### 4. ESP32 Firmware
 
 Open `Arduino/` in Arduino IDE. Set your Wi-Fi credentials, MQTT broker address, and room ID in the config section, then flash to your ESP32 board.
 
-### 5. Heart-Rate Bridge (optional)
+#### 5. Heart-Rate Bridge (optional)
 
 ```bash
 cd backend
-python tools/coospo_reader.py   # pairs with Coospo H6 over BLE and publishes to MQTT
+python tools/coospo_reader.py   # pairs with Coospo H6 over BLE and re-publishes to MQTT
 ```
 
 ---
