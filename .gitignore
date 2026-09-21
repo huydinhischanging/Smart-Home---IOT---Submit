@@ -37,6 +37,9 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
+.coverage
+backend/test_results/
+*_test_output.txt
 
 # Certificates
 *.key
@@ -64,3 +67,10 @@ MOBILE_APK_Export/
 REPORT/*.docx
 files/*.pdf
 files/*.zip
+
+# Thesis / defense material (local only, not part of the project)
+Report/
+Defense_Prep/
+File-report/
+TLPB/
+.claude/
