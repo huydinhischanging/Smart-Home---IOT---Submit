@@ -1,5 +1,7 @@
 # Smart Home for Elderly Care — IoT System
 
+**Demo video:** https://youtu.be/wzfvrqeUmX4
+
 A full-stack IoT platform for monitoring and assisting elderly people living at home. The system combines environmental and physiological sensing, machine-learning anomaly detection, an AI conversational assistant, and caregiver-facing web and mobile apps into a single open-source platform.
 
 Built as an undergraduate thesis project at HCMC International University (IU), 2025–2026.
@@ -35,7 +37,7 @@ Built as an undergraduate thesis project at HCMC International University (IU), 
 ┌────────────▼───────────────────────────────────────────┐
 │               Edge / Sensor Layer                      │
 │  ESP32 (DHT11, LDR, PIR, relay control)                │
-│  Coospo H6 BLE → coospo_reader.py → MQTT              │
+│  Coospo H6 BLE → coospo_reader.py (backend/) → MQTT    │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -50,9 +52,7 @@ Built as an undergraduate thesis project at HCMC International University (IU), 
 │   ├── tools/        Utility scripts (grid search, anomaly retraining)
 │   └── tests/        Pytest suite (448 tests, ~53% coverage)
 ├── frontend/         Vite web dashboard (Vanilla JS)
-├── MOBILE/           Flutter mobile app
-├── TLPB/             PCB schematic and layout files
-└── File-report/      LaTeX thesis source (Overleaf-compatible)
+└── MOBILE/           Flutter mobile app
 ```
 
 ---
@@ -135,7 +135,7 @@ Open `Arduino/` in Arduino IDE. Set your Wi-Fi credentials, MQTT broker address,
 
 ```bash
 cd backend
-python tools/coospo_reader.py   # pairs with Coospo H6 over BLE and re-publishes to MQTT
+python coospo_reader.py   # pairs with Coospo H6 over BLE and re-publishes to MQTT
 ```
 
 ---
@@ -150,7 +150,7 @@ python tools/coospo_reader.py   # pairs with Coospo H6 over BLE and re-publishes
 | AI assistant | Google Gemini 2.5 Flash · Ollama Qwen2.5:3b (local) |
 | Web frontend | Vite · Vanilla JS · HTML Canvas |
 | Mobile | Flutter 3 · Dart |
-| Database | MySQL (production) · SQLite (development / CI) |
+| Database | PostgreSQL (production) · SQLite (development / CI) |
 | Broker | EMQX Cloud (MQTT over TLS, port 8883) |
 | Auth | HttpOnly cookie (web) · Bearer token (mobile) · `itsdangerous` |
 | Email alerts | SMTP / Brevo transactional API |
@@ -166,7 +166,7 @@ python tools/coospo_reader.py   # pairs with Coospo H6 over BLE and re-publishes
 - HC-SR501 PIR motion sensor
 - 4-channel 5 V relay module
 - Coospo H6 BLE heart-rate chest strap
-- Custom PCB (see `TLPB/`)
+- Custom ESP32 outlet PCB (schematic and layout in `Arduino/IOT_ESP32-OUTLET.*`)
 
 ---
 
@@ -187,12 +187,6 @@ cd backend
 python -m pytest              # 448 tests
 python -m pytest --no-cov     # faster, no coverage report
 ```
-
----
-
-## Thesis
-
-The full thesis report (LaTeX source) is in `File-report/Overleaf_Project/`. The compiled PDF covers system design, ML methodology, evaluation results, and limitations.
 
 ---
 
